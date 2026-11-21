@@ -9,7 +9,7 @@ window.STORY = {
   scenes: [
     {
       type: "hero",
-      kicker: "Six months",
+      kicker: "Happy Six months",
       title: "For {name}",
       subtitle: "A little story of us. Scroll down.",
     },
