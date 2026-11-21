@@ -74,41 +74,63 @@
         <div class="flip__face"><span class="date">${esc(s.date)}</span><h2>${esc(s.title)}</h2><span class="hint">Tap to open</span></div>
         <div class="flip__face flip__face--back"><p>${esc(s.text)}</p></div></div>`;
 
-      // the media cards that appear after tapping (swipe sideways)
-      const tray = el("div", "tray");
-      const inner = el("div", "tray__inner");
-      const scroller = el("div", "tray__scroll");
-      s.media.forEach((m, i) => scroller.append(mediaTile(m, i)));
-      inner.append(scroller);
-      if (s.media.length > 1) inner.append(el("span", "hint tray__hint", "Swipe →"));
-      tray.append(inner);
+      // full-screen overlay: media tiles in a grid (2 per row) with the card's button in the middle
+      const COLS = 2;
+      const rows = Math.ceil(s.media.length / COLS);
+      const ov = el("div", "overlay");
+      ov.style.setProperty("--rows", rows);
+      const grid = el("div", "ogrid");
+      s.media.forEach((m, i) => {
+        const t = mediaTile(m, i);
+        const row = Math.floor(i / COLS), mid = (rows - 1) / 2;
+        // tiles grow outward from the centre button
+        t.style.transformOrigin = `${i % COLS ? "left" : "right"} ${row < mid ? "bottom" : row > mid ? "top" : "center"}`;
+        t.style.transitionDelay = `${i * 70}ms`;
+        grid.append(t);
+      });
+      const hub = el("button", "hub");
+      hub.setAttribute("aria-label", "Play or pause voice-over");
+      const closeBtn = el("button", "overlay__close", "✕");
+      closeBtn.setAttribute("aria-label", "Close");
+      ov.append(grid, hub, closeBtn);
+      document.body.append(ov);
 
-      const videos = () => scroller.querySelectorAll("video");
+      const videos = () => ov.querySelectorAll("video");
+      const setIcon = () => { hub.textContent = audio ? (audio.paused ? "▶" : "❚❚") : "♥"; };
+      if (audio) ["play", "pause", "ended"].forEach((ev) => audio.addEventListener(ev, setIcon));
+      setIcon();
 
+      let showTimer;
       const api = {
         open() {
           if (active && active !== api) active.close();
           active = api;
-          card.classList.add("open");
-          tray.classList.add("open");
-          videos().forEach((v) => { v.preload = "auto"; v.play().catch(() => {}); });
+          card.classList.add("open"); // 1) card flips
           if (audio) { audio.currentTime = 0; audio.play().catch(() => {}); } // missing file / blocked = stay silent
-          setTimeout(() => tray.scrollIntoView({ behavior: "smooth", block: "nearest" }), 450);
+          showTimer = setTimeout(() => { // 2) then it becomes the centre button and the tiles open out
+            ov.classList.add("show");
+            document.body.classList.add("locked");
+            videos().forEach((v) => { v.preload = "auto"; v.play().catch(() => {}); });
+          }, 650);
         },
         close() {
+          clearTimeout(showTimer);
+          ov.classList.remove("show");
+          document.body.classList.remove("locked");
           card.classList.remove("open");
-          tray.classList.remove("open");
           videos().forEach((v) => v.pause());
           if (audio) audio.pause();
           if (active === api) active = null;
         },
       };
 
-      const toggle = () => (card.classList.contains("open") ? api.close() : api.open());
-      card.addEventListener("click", toggle);
-      card.addEventListener("keydown", (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), toggle()));
+      card.addEventListener("click", () => api.open());
+      card.addEventListener("keydown", (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), api.open()));
+      hub.addEventListener("click", () => (audio ? (audio.paused ? audio.play().catch(() => {}) : audio.pause()) : api.close()));
+      closeBtn.addEventListener("click", () => api.close());
+      addEventListener("keydown", (e) => e.key === "Escape" && active === api && api.close());
 
-      sec.append(card, tray);
+      sec.append(card);
     },
 
     counter(s, sec) {

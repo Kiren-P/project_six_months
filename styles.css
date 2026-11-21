@@ -59,28 +59,38 @@ p { margin: 0; font-size: 18px; line-height: 1.55; color: var(--ink-dim); white-
 .flip__face--back p { color: #fff; }
 .hint { font-size: 13px; color: var(--accent-2); }
 
-/* media tray: pops open under a story card */
-.tray { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .7s cubic-bezier(.2, .8, .2, 1); }
-.tray.open { grid-template-rows: 1fr; }
-.tray__inner { min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 10px; }
-.tray__scroll {
-  display: flex; gap: 14px; margin: 0 -28px; padding: 18px 28px 6px; overflow-x: auto;
-  scroll-snap-type: x mandatory; scrollbar-width: none;
+/* pop-out overlay: media tiles in a grid, with the card's button in the middle */
+.locked { overflow: hidden; }
+.overlay {
+  position: fixed; inset: 0; z-index: 15; display: grid; place-items: center;
+  background: rgba(26, 15, 31, .94); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  opacity: 0; visibility: hidden; transition: opacity .4s ease, visibility 0s .4s;
 }
-.tray__scroll::-webkit-scrollbar { display: none; }
+.overlay.show { opacity: 1; visibility: visible; transition-delay: 0s; }
+.ogrid {
+  width: min(100%, 440px); height: 100%; display: grid; gap: 12px;
+  grid-template-columns: 1fr 1fr; grid-template-rows: repeat(var(--rows, 2), minmax(0, 1fr));
+  padding: calc(env(safe-area-inset-top) + 56px) 16px calc(env(safe-area-inset-bottom) + 56px);
+}
 .mcard {
-  position: relative; flex: 0 0 78%; aspect-ratio: 4 / 5; scroll-snap-align: center; border-radius: var(--radius); overflow: hidden;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, .4); background: var(--card);
-  opacity: 0; transform: translateY(24px) scale(.95); transition: opacity .6s ease, transform .6s ease;
+  position: relative; border-radius: 20px; overflow: hidden; min-height: 0; background: var(--card);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .4);
+  opacity: 0; transform: scale(.2); transition: opacity .5s ease, transform .6s cubic-bezier(.2, .9, .3, 1.15);
 }
-.tray.open .mcard { opacity: 1; transform: none; }
-.tray.open .mcard:nth-child(2) { transition-delay: .12s; }
-.tray.open .mcard:nth-child(3) { transition-delay: .24s; }
-.tray.open .mcard:nth-child(n+4) { transition-delay: .36s; }
+.overlay.show .mcard { opacity: 1; transform: none; }
 .mcard img, .mcard video { width: 100%; height: 100%; object-fit: cover; display: block; }
-.mcard--empty { display: grid; place-items: center; border: 2px dashed rgba(255, 255, 255, .25); color: var(--ink-dim); font-size: 15px; text-align: center; padding: 16px; }
-.mcard__cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 28px 14px 12px; font-size: 14px; background: linear-gradient(transparent, rgba(0, 0, 0, .65)); }
-.tray__hint { text-align: right; }
+.mcard--empty { display: grid; place-items: center; border: 2px dashed rgba(255, 255, 255, .25); color: var(--ink-dim); font-size: 15px; text-align: center; padding: 12px; }
+.mcard__cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 24px 12px 10px; font-size: 13px; background: linear-gradient(transparent, rgba(0, 0, 0, .65)); }
+.hub {
+  position: absolute; left: 50%; top: 50%; width: 76px; height: 76px; border-radius: 50%; border: 3px solid var(--bg);
+  background: linear-gradient(145deg, var(--accent), #7b4bb0); color: #fff; font-size: 24px; cursor: pointer;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .5); transform: translate(-50%, -50%) scale(0); transition: transform .5s cubic-bezier(.2, .9, .3, 1.3) .15s;
+}
+.overlay.show .hub { transform: translate(-50%, -50%) scale(1); }
+.overlay__close {
+  position: absolute; top: calc(env(safe-area-inset-top) + 12px); right: 16px; width: 40px; height: 40px; border-radius: 50%;
+  border: 0; background: var(--card); color: var(--ink); font-size: 18px; cursor: pointer;
+}
 
 /* counter */
 .counter { text-align: center; }

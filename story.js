@@ -17,8 +17,10 @@ window.STORY = {
   storyCardCount: 4,
 
   // 2) HOW MANY MEDIA CARDS POP OUT when she taps a story card (default for every card)
+  //    They fill the screen in a grid of 2 columns. 4 = a 2x2 grid with the card's button in the middle
+  //    (use an even number — 2, 4, 6 — so the middle button sits neatly between tiles).
   //    A card that has its own `media: [...]` list below uses the length of that list instead.
-  mediaPerCard: 3,
+  mediaPerCard: 4,
   // ─────────────────────────────────────────────────────────────────────────────
 
   // The story cards, in order. Card #1 is the first object, card #2 the second, etc.
@@ -29,10 +31,10 @@ window.STORY = {
       text: "Placeholder: how it all started.", // shown on the back once she flips it
 
       // 3) AUDIO FOR THIS CARD — path to your voice-over. Plays when she taps the card.
-      //    Leave as null (or a file that doesn't exist yet) and the card simply stays silent.
+      //    Plays when she taps the card; the middle button then pauses/resumes it. Leave null (or a file that doesn't exist yet) to stay silent.
       audio: null, // e.g. "audio/card1.mp3"
 
-      // 4) MEDIA FOR THIS CARD — the cards that pop out below after she taps.
+      // 4) MEDIA FOR THIS CARD — the tiles that fill the screen around the middle button after she taps.
       //    One object per media card, so the number of objects = the number of pop-out cards for THIS card.
       //    src: path to the photo/video. null = shows a "placeholder" tile. type is auto-detected
       //    from the extension (.mp4/.mov/.webm = video, anything else = image).
@@ -41,6 +43,7 @@ window.STORY = {
         { src: null, caption: "Placeholder 1" }, // e.g. { src: "media/first-date.jpeg", caption: "Our first date" }
         { src: null, caption: "Placeholder 2" }, // e.g. { src: "media/first-clip.mp4" }
         { src: null, caption: "Placeholder 3" },
+        { src: null, caption: "Placeholder 4" },
       ],
     },
 
@@ -53,6 +56,7 @@ window.STORY = {
         { src: null, caption: "Placeholder 1" },
         { src: null, caption: "Placeholder 2" },
         { src: null, caption: "Placeholder 3" },
+        { src: null, caption: "Placeholder 4" },
       ],
     },
 
@@ -65,6 +69,7 @@ window.STORY = {
         { src: null, caption: "Placeholder 1" },
         { src: null, caption: "Placeholder 2" },
         { src: null, caption: "Placeholder 3" },
+        { src: null, caption: "Placeholder 4" },
       ],
     },
 
@@ -77,6 +82,7 @@ window.STORY = {
         { src: null, caption: "Placeholder 1" },
         { src: null, caption: "Placeholder 2" },
         { src: null, caption: "Placeholder 3" },
+        { src: null, caption: "Placeholder 4" },
       ],
     },
   ],
