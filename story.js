@@ -32,7 +32,7 @@ window.STORY = {
 
       // 3) AUDIO FOR THIS CARD — path to your voice-over. Plays when she taps the card.
       //    Plays when she taps the card; the middle button then pauses/resumes it. Leave null (or a file that doesn't exist yet) to stay silent.
-      audio: "C:\\Users\\Kir\\Documents\\project_six_months\\project_six_months\\voiceovers\\sound-of-waves-marine-drive-mumbai.mp3", // e.g. "audio/card1.mp3"
+      audio: ".\\voiceovers\\sound-of-waves-marine-drive-mumbai.mp3", // e.g. "audio/card1.mp3"
 
       // 4) MEDIA FOR THIS CARD — the tiles that fill the screen around the middle button after she taps.
       //    One object per media card, so the number of objects = the number of pop-out cards for THIS card.
