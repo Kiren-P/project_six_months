@@ -30,9 +30,8 @@ window.STORY = {
   cards: [
     // ── Card 1 ── 2 media file(s)
     {
-      date: "Chapter one",
-      title: "Title for card 1",                // ✏️ front of the card
-      text: "Placeholder: a line for card 1.",   // ✏️ back of the card (shown while it flips)
+      title: "Toen we spraken",                // ✏️ front of the card
+      text: "Toen we spraken.",   // ✏️ back of the card (shown while it flips)
       audio: "voiceovers/Card 1.mp4",
       media: [
         { src: "media/Card 1/WhatsApp Video 2026-11-21 at 18.59.47.mp4" },
@@ -42,9 +41,8 @@ window.STORY = {
 
     // ── Card 2 ── 1 media file(s)
     {
-      date: "Chapter two",
-      title: "Title for card 2",                // ✏️ front of the card
-      text: "Placeholder: a line for card 2.",   // ✏️ back of the card (shown while it flips)
+      title: "Eerste ontmoeting",                // ✏️ front of the card
+      text: "Eerste ontmoeting.",   // ✏️ back of the card (shown while it flips)
       audio: "voiceovers/Card 2.m4a.mp4",
       media: [
         { src: "media/Card 2/WhatsApp Video 2026-11-21 at 18.59.32.mp4" },
@@ -53,9 +51,8 @@ window.STORY = {
 
     // ── Card 3 ── 4 media file(s)
     {
-      date: "Chapter three",
-      title: "Title for card 3",                // ✏️ front of the card
-      text: "Placeholder: a line for card 3.",   // ✏️ back of the card (shown while it flips)
+      title: "Onze eerste date",                // ✏️ front of the card
+      text: "Onze eerste date.",   // ✏️ back of the card (shown while it flips)
       audio: "voiceovers/Card 3.m4a.mp4",
       media: [
         { src: "media/Card 3/WhatsApp Image 2026-11-21 at 18.59.28.jpeg" },
@@ -67,9 +64,8 @@ window.STORY = {
 
     // ── Card 4 ── 3 media file(s)
     {
-      date: "Chapter four",
-      title: "Title for card 4",                // ✏️ front of the card
-      text: "Placeholder: a line for card 4.",   // ✏️ back of the card (shown while it flips)
+      title: "Jouw man",                // ✏️ front of the card
+      text: "Jouw man.",   // ✏️ back of the card (shown while it flips)
       audio: "voiceovers/Card 4.m4a.mp4",
       media: [
         { src: "media/Card 4/WhatsApp Image 2026-11-21 at 18.59.30 (5).jpeg" },
@@ -80,9 +76,8 @@ window.STORY = {
 
     // ── Card 5 ── 14 media file(s)
     {
-      date: "Chapter five",
-      title: "Title for card 5",                // ✏️ front of the card
-      text: "Placeholder: a line for card 5.",   // ✏️ back of the card (shown while it flips)
+      title: "Dates",                // ✏️ front of the card
+      text: "Dates.",   // ✏️ back of the card (shown while it flips)
       audio: "voiceovers/Card 5.m4a.mp4",
       media: [
         { src: "media/Card 5/WhatsApp Video 2026-11-21 at 18.59.32 (1).mp4" },
@@ -104,9 +99,8 @@ window.STORY = {
 
     // ── Card 6 ── 3 media file(s)
     {
-      date: "Chapter six",
-      title: "Title for card 6",                // ✏️ front of the card
-      text: "Placeholder: a line for card 6.",   // ✏️ back of the card (shown while it flips)
+      title: "Onze eerste maand samen",                // ✏️ front of the card
+      text: "Onze eerste maand samen.",   // ✏️ back of the card (shown while it flips)
       audio: "voiceovers/Card 6.m4a.mp4",
       media: [
         { src: "media/Card 6/WhatsApp Video 2026-11-21 at 18.59.40.mp4" },
@@ -117,9 +111,8 @@ window.STORY = {
 
     // ── Card 7 ── 3 media file(s)
     {
-      date: "Chapter seven",
-      title: "Title for card 7",                // ✏️ front of the card
-      text: "Placeholder: a line for card 7.",   // ✏️ back of the card (shown while it flips)
+      title: "Momenten",                // ✏️ front of the card
+      text: "Momenten.",   // ✏️ back of the card (shown while it flips)
       audio: "voiceovers/Card 7.m4a.mp4",
       media: [
         { src: "media/Card 7/WhatsApp Video 2026-11-21 at 18.59.35.mp4" },
@@ -130,9 +123,8 @@ window.STORY = {
 
     // ── Card 8 ── 7 media file(s)
     {
-      date: "Chapter eight",
-      title: "Title for card 8",                // ✏️ front of the card
-      text: "Placeholder: a line for card 8.",   // ✏️ back of the card (shown while it flips)
+      title: "7448 Km",                // ✏️ front of the card
+      text: "7448 Km.",   // ✏️ back of the card (shown while it flips)
       audio: "voiceovers/Card 8.m4a.mp4",
       media: [
         { src: "media/Card 8/WhatsApp Video 2026-11-21 at 18.59.43.mp4" },

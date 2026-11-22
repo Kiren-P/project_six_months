@@ -24,7 +24,7 @@
       const c = S.cards?.[i] || {};
       return {
         type: "storycard",
-        date: c.date ?? `Card ${i + 1}`,
+        date: c.date ?? "", // optional small label above the title
         title: c.title ?? `Story ${i + 1}`,
         text: c.text ?? "Placeholder text.",
         audio: c.audio ?? null,
@@ -72,7 +72,7 @@
       card.tabIndex = 0;
       card.setAttribute("role", "button");
       card.innerHTML = `<div class="flip__inner">
-        <div class="flip__face"><span class="date">${esc(s.date)}</span><h2>${esc(s.title)}</h2><span class="hint">Tap to open</span></div>
+        <div class="flip__face">${s.date ? `<span class="date">${esc(s.date)}</span>` : ""}<h2>${esc(s.title)}</h2><span class="hint">Tap to open</span></div>
         <div class="flip__face flip__face--back"><p>${esc(s.text)}</p></div></div>`;
 
       // full-screen overlay. Layout depends on how many media files the card has:
