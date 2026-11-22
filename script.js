@@ -245,10 +245,108 @@
   );
   document.querySelectorAll(".scene").forEach((n) => n._warm && warmIO.observe(n));
 
+  // ── Rose vine ────────────────────────────────────────────────────────────────
+  // One long vine runs behind all story cards, swinging left/right in the gaps between them,
+  // with leaves and roses along it. It "grows" down the page as she scrolls.
+  const NS = "http://www.w3.org/2000/svg";
+  const svgEl = (tag, attrs = {}) => {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  };
+  const ROSE = `
+    <path d="M-4 9 C-14 10 -19 17 -22 21 C-12 22 -6 17 -4 9Z" fill="#3f7a3a"/>
+    <path d="M4 9 C14 10 19 17 22 21 C12 22 6 17 4 9Z" fill="#4e8c43"/>
+    ${[0, 72, 144, 216, 288].map((a) => `<circle r="7" cx="${(7 * Math.cos((a * Math.PI) / 180)).toFixed(1)}" cy="${(7 * Math.sin((a * Math.PI) / 180)).toFixed(1)}" fill="#ad1457"/>`).join("")}
+    <circle r="10" cx="0.5" cy="-0.5" fill="#d81b60"/>
+    <path d="M0 -9 A9 9 0 1 1 -8.6 2.7" fill="none" stroke="#ff8fb1" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M1 -5 A5 5 0 1 1 -4.2 2" fill="none" stroke="#ff8fb1" stroke-width="2" stroke-linecap="round"/>
+    <circle r="1.8" cx="0.5" cy="-0.5" fill="#ffb3c8"/>`;
+  const LEAF = `<path d="M0 0 C6 -7 16 -8 24 0 C16 8 6 7 0 0Z" fill="#4e8c43"/><path d="M2 0 L20 0" stroke="#2f5e2b" stroke-width="1"/>`;
+
+  let vine = null;
+  const offsetIn = (node, anc) => { let y = 0; for (let n = node; n && n !== anc; n = n.offsetParent) y += n.offsetTop; return y; };
+  const buildVine = () => {
+    vine?.svg.remove();
+    vine = null;
+    const cards = [...root.querySelectorAll(".flip")];
+    if (cards.length < 2) return;
+    const W = root.clientWidth, cx = W / 2, A = Math.min(W * 0.38, 170);
+    const boxes = cards.map((c) => { const t = offsetIn(c, root); return { t, b: t + c.offsetHeight }; });
+
+    // path: curl in above the first card, straight down behind each card, S-curve through each gap
+    const first = boxes[0], last = boxes[boxes.length - 1];
+    let d = `M${cx - 70} ${first.t - 150} C${cx - 90} ${first.t - 60} ${cx} ${first.t - 80} ${cx} ${first.t + 40}`;
+    boxes.forEach((bx, i) => {
+      d += ` L${cx} ${bx.b - 40}`;
+      const next = boxes[i + 1];
+      if (next) {
+        const s = i % 2 ? -1 : 1, gap = next.t - bx.b;
+        d += ` C${cx + A * s} ${bx.b + gap * 0.3} ${cx - A * s} ${next.t - gap * 0.3} ${cx} ${next.t + 40}`;
+      }
+    });
+    d += ` C${cx} ${last.b + 60} ${cx + 80} ${last.b + 70} ${cx + 70} ${last.b + 140}`;
+
+    const H = root.scrollHeight;
+    const svg = svgEl("svg", { class: "vine", width: W, height: H, viewBox: `0 0 ${W} ${H}`, "aria-hidden": "true" });
+    const stem = svgEl("path", { d, class: "vine__stem" });
+    const light = svgEl("path", { d, class: "vine__stem vine__stem--light" });
+    svg.append(stem, light);
+    root.prepend(svg);
+
+    const L = stem.getTotalLength();
+    const hidden = (y) => boxes.some((bx) => y > bx.t + 10 && y < bx.b - 10); // behind a card
+    const buds = [];
+    let side = 1, k = 0;
+    for (let len = 30; len < L; len += 34, k++) {
+      const p = stem.getPointAtLength(len);
+      if (hidden(p.y)) continue;
+      const q = stem.getPointAtLength(Math.min(L, len + 1));
+      const ang = (Math.atan2(q.y - p.y, q.x - p.x) * 180) / Math.PI;
+      const g = svgEl("g", { transform: `translate(${p.x} ${p.y})` });
+      const bud = svgEl("g", { class: "bud" });
+      if (k % 5 === 2) {
+        // a rose every few steps, nudged to one side of the stem
+        const sc = 0.9 + ((k * 37) % 10) / 20;
+        bud.innerHTML = `<g transform="translate(${side * 12} 0) rotate(${(k * 53) % 360}) scale(${sc})">${ROSE}</g>`;
+      } else {
+        bud.innerHTML = `<g transform="rotate(${ang + side * 55})">${LEAF}</g>`;
+      }
+      side = -side;
+      g.append(bud);
+      svg.append(g);
+      buds.push({ len, el: bud });
+    }
+    stem.style.strokeDasharray = light.style.strokeDasharray = L;
+    // y → length lookup (the path only ever moves downwards)
+    const samples = [];
+    for (let len = 0; len <= L; len += 10) samples.push([len, stem.getPointAtLength(len).y]);
+    vine = { svg, stem, light, L, buds, samples };
+    growVine();
+  };
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const growVine = () => {
+    if (!vine) return;
+    const front = scrollY + innerHeight * 0.8 - (root.getBoundingClientRect().top + scrollY);
+    let grown = vine.L;
+    if (!reduceMotion) {
+      const hit = vine.samples.find(([, y]) => y > front);
+      grown = hit ? hit[0] : vine.L;
+    }
+    vine.stem.style.strokeDashoffset = vine.light.style.strokeDashoffset = vine.L - grown;
+    vine.buds.forEach((b) => b.el.classList.toggle("on", b.len <= grown));
+  };
+  let vineTimer;
+  const rebuildVine = () => { clearTimeout(vineTimer); vineTimer = setTimeout(buildVine, 150); };
+  addEventListener("resize", rebuildVine);
+  addEventListener("load", rebuildVine);
+  buildVine();
+
   const bar = document.getElementById("progress");
   const onScroll = () => {
     const max = document.documentElement.scrollHeight - innerHeight;
     bar.style.width = (max > 0 ? (scrollY / max) * 100 : 0) + "%";
+    growVine();
   };
   addEventListener("scroll", onScroll, { passive: true });
   onScroll();

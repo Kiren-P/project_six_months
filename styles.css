@@ -6,6 +6,7 @@
   --accent: #ff7a9c;
   --accent-2: #ffc2a8;
   --card: rgba(255, 255, 255, 0.08);
+  --card-border: #8e3fd6;   /* thick purple border around the story cards */
   --radius: 24px;
   --serif: "Iowan Old Style", "Palatino", Georgia, serif;
   --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
@@ -53,11 +54,26 @@ p { margin: 0; font-size: 18px; line-height: 1.55; color: var(--ink-dim); white-
 .flip__face {
   position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
   border-radius: var(--radius); padding: 28px; display: flex; flex-direction: column; justify-content: center; gap: 14px;
-  text-align: center; overflow-y: auto; background: var(--card); border: 1px solid rgba(255, 255, 255, .14);
+  text-align: center; overflow-y: auto;
+  /* pink gradient + thick purple border so the card stands out from the dark background */
+  background: linear-gradient(160deg, #ffd1df 0%, #ff9dbb 45%, #f06a9b 100%);
+  border: 6px solid var(--card-border);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .45), 0 0 0 1px rgba(255, 255, 255, .12), 0 0 40px rgba(155, 77, 224, .35);
 }
-.flip__face--back { transform: rotateY(180deg); background: linear-gradient(145deg, var(--accent), #7b4bb0); }
-.flip__face--back p { color: #fff; }
+.flip__face h2 { color: #3a0f36; }
+.flip__face .hint { color: #6b1d5e; font-weight: 600; }
+.flip__face--back { transform: rotateY(180deg); background: linear-gradient(145deg, #f06a9b, #8e44d6); }
+.flip__face--back p { color: #fff; font-family: var(--serif); font-size: 24px; }
 .hint { font-size: 13px; color: var(--accent-2); }
+
+/* rose vine connecting the story cards (drawn by script.js, grows as you scroll) */
+.story { position: relative; }
+.scene { position: relative; z-index: 1; }
+.vine { position: absolute; left: 0; top: 0; width: 100%; z-index: 0; pointer-events: none; overflow: visible; }
+.vine__stem { fill: none; stroke: #3f7a3a; stroke-width: 6; stroke-linecap: round; }
+.vine__stem--light { stroke: #6fae5c; stroke-width: 2; }
+.vine .bud { transform: scale(0); transform-box: fill-box; transform-origin: center; transition: transform .6s cubic-bezier(.2, .9, .3, 1.4); }
+.vine .bud.on { transform: scale(1); }
 
 /* pop-out overlay: media tiles around the card's centre button */
 .locked { overflow: hidden; }
@@ -137,4 +153,5 @@ p { margin: 0; font-size: 18px; line-height: 1.55; color: var(--ink-dim); white-
 @media (prefers-reduced-motion: reduce) {
   .scene { transition: none; opacity: 1; transform: none; }
   .hero::after, .heart { animation: none; }
+  .vine .bud { transition: none; }
 }
