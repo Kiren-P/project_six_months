@@ -59,36 +59,56 @@ p { margin: 0; font-size: 18px; line-height: 1.55; color: var(--ink-dim); white-
 .flip__face--back p { color: #fff; }
 .hint { font-size: 13px; color: var(--accent-2); }
 
-/* pop-out overlay: media tiles in a grid, with the card's button in the middle */
+/* pop-out overlay: media tiles around the card's centre button */
 .locked { overflow: hidden; }
 .overlay {
-  position: fixed; inset: 0; z-index: 15; display: grid; place-items: center;
+  position: fixed; inset: 0; z-index: 15;
   background: rgba(26, 15, 31, .94); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   opacity: 0; visibility: hidden; transition: opacity .4s ease, visibility 0s .4s;
 }
 .overlay.show { opacity: 1; visibility: visible; transition-delay: 0s; }
-.ogrid {
-  width: min(100%, 440px); height: 100%; display: grid; gap: 12px;
-  grid-template-columns: 1fr 1fr; grid-template-rows: repeat(var(--rows, 2), minmax(0, 1fr));
-  padding: calc(env(safe-area-inset-top) + 56px) 16px calc(env(safe-area-inset-bottom) + 56px);
+.ostage {
+  position: absolute;
+  inset: calc(env(safe-area-inset-top) + 60px) max(16px, calc(50% - 204px)) calc(env(safe-area-inset-bottom) + 60px);
 }
+/* 1–4 media: grid */
+.ogrid { display: grid; gap: 12px; grid-template-columns: repeat(var(--cols, 2), 1fr); grid-template-rows: repeat(var(--rows, 2), minmax(0, 1fr)); }
+.ogrid .span2 { grid-column: span 2; }
 .mcard {
   position: relative; border-radius: 20px; overflow: hidden; min-height: 0; background: var(--card);
   box-shadow: 0 16px 40px rgba(0, 0, 0, .4);
-  opacity: 0; transform: scale(.2); transition: opacity .5s ease, transform .6s cubic-bezier(.2, .9, .3, 1.15);
+  opacity: 0; transform: translate(var(--fx, 0), var(--fy, 0)) scale(.15);
+  transition: opacity .5s ease, transform .7s cubic-bezier(.2, .9, .3, 1.1);
 }
-.overlay.show .mcard { opacity: 1; transform: none; }
+.overlay.show .mcard { opacity: 1; transform: rotate(var(--r, 0deg)); }
 .mcard img, .mcard video { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* 5+ media: scattered polaroids */
+.scatter .mcard {
+  position: absolute; overflow: visible; border-radius: 4px; padding: 6px 6px 20px; background: #fbf6f1;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .55); cursor: zoom-in;
+}
+.scatter .mcard img, .scatter .mcard video { border-radius: 2px; background: #2b1530; }
+.overlay.show .scatter .mcard.zoom {
+  z-index: 40 !important; cursor: zoom-out; transition-delay: 0s;
+  transform: translate(var(--zx), var(--zy)) scale(var(--zs));
+}
 .mcard--empty { display: grid; place-items: center; border: 2px dashed rgba(255, 255, 255, .25); color: var(--ink-dim); font-size: 15px; text-align: center; padding: 12px; }
 .mcard__cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 24px 12px 10px; font-size: 13px; background: linear-gradient(transparent, rgba(0, 0, 0, .65)); }
+/* centre button, with a ring that fills up as the voice-over plays */
 .hub {
-  position: absolute; left: 50%; top: 50%; width: 76px; height: 76px; border-radius: 50%; border: 3px solid var(--bg);
+  position: absolute; z-index: 30; left: 50%; top: 50%; width: 76px; height: 76px; border-radius: 50%; border: 3px solid var(--bg);
   background: linear-gradient(145deg, var(--accent), #7b4bb0); color: #fff; font-size: 24px; cursor: pointer;
   box-shadow: 0 8px 28px rgba(0, 0, 0, .5); transform: translate(-50%, -50%) scale(0); transition: transform .5s cubic-bezier(.2, .9, .3, 1.3) .15s;
 }
+.hub::before {
+  content: ""; position: absolute; inset: -9px; border-radius: 50%; pointer-events: none;
+  background: conic-gradient(var(--accent-2) calc(var(--p, 0) * 360deg), rgba(255, 255, 255, .15) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+}
 .overlay.show .hub { transform: translate(-50%, -50%) scale(1); }
 .overlay__close {
-  position: absolute; top: calc(env(safe-area-inset-top) + 12px); right: 16px; width: 40px; height: 40px; border-radius: 50%;
+  position: absolute; z-index: 50; top: calc(env(safe-area-inset-top) + 12px); right: 16px; width: 40px; height: 40px; border-radius: 50%;
   border: 0; background: var(--card); color: var(--ink); font-size: 18px; cursor: pointer;
 }
 

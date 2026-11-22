@@ -1,9 +1,10 @@
 // ✏️  EDIT ME — this file is the whole story.
-// Scenes are shown in order as she scrolls. Everything marked "Placeholder" is yours to replace.
+// Scenes are shown in order as she scrolls.
 //
-// FOLDERS: your photos/videos live in /media (already in the repo). Put voice-overs in a new /audio folder.
-// Paths are written relative to index.html, e.g. "media/my-photo.jpeg" or "audio/card1.mp3".
-// Tip: avoid spaces in file names (rename "WhatsApp Image ... (1).jpeg" to something like "first-date.jpeg").
+// PATHS are relative to index.html and must use forward slashes:  "media/Card 1/clip.mp4"  ✅
+//                                                                   ".\media\Card 1\clip.mp4"  ❌ (won't load)
+// Photos/videos for card N live in media/Card N/, voice-overs in voiceovers/.
+// Video tiles are always muted (the sound was also stripped from the files) so only the voice-over is heard.
 
 window.STORY = {
   herName: "Ishani",            // shown on the opening scene and the letter
@@ -11,78 +12,136 @@ window.STORY = {
 
   // ─────────────────────────────────────────────────────────────────────────────
   // 1) HOW MANY STORY CARDS (one card per scroll section)
-  //    Change this one number to add/remove cards. Currently 4.
   //    - If `cards` below has fewer entries than this number, the extra cards are filled with placeholders.
   //    - If `cards` has more entries, the extras are ignored (so you can keep drafts around).
-  storyCardCount: 4,
+  storyCardCount: 8,
 
-  // 2) HOW MANY MEDIA CARDS POP OUT when she taps a story card (default for every card)
-  //    They fill the screen in a grid of 2 columns. 4 = a 2x2 grid with the card's button in the middle
-  //    (use an even number — 2, 4, 6 — so the middle button sits neatly between tiles).
-  //    A card that has its own `media: [...]` list below uses the length of that list instead.
+  // 2) HOW MANY MEDIA TILES a card shows when it has NO `media` list (blank placeholders).
+  //    Cards with a `media` list show exactly the files in that list. Layout is automatic:
+  //      1–4 tiles  → they fill the screen in a grid around the middle button
+  //      5+ tiles   → they shrink into scattered polaroids (tap one to enlarge it)
   mediaPerCard: 4,
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // The story cards, in order. Card #1 is the first object, card #2 the second, etc.
+  // The story cards, in order. Each card:
+  //   audio: the voice-over. Plays as soon as she taps; when it ENDS the card closes and flips back.
+  //   media: one { src } per tile. .mp4/.mov/.webm = looping muted video, anything else = photo.
+  //          Optional: { src, caption: "text under the tile" }.
   cards: [
+    // ── Card 1 ── 2 media file(s)
     {
-      date: "Month 1",
-      title: "The beginning",                 // shown on the front of the card
-      text: "Placeholder: how it all started.", // shown on the back once she flips it
-
-      // 3) AUDIO FOR THIS CARD — path to your voice-over. Plays when she taps the card.
-      //    Plays when she taps the card; the middle button then pauses/resumes it. Leave null (or a file that doesn't exist yet) to stay silent.
-      audio: "voiceovers/sound-of-waves-marine-drive-mumbai.mp3", // always use forward slashes, e.g. "voiceovers/card2.mp3"
-
-      // 4) MEDIA FOR THIS CARD — the tiles that fill the screen around the middle button after she taps.
-      //    One object per media card, so the number of objects = the number of pop-out cards for THIS card.
-      //    src: path to the photo/video. null = shows a "placeholder" tile. type is auto-detected
-      //    from the extension (.mp4/.mov/.webm = video, anything else = image).
-      //    Delete this whole `media` list to fall back to `mediaPerCard` blank placeholders instead.
+      date: "Chapter one",
+      title: "Title for card 1",                // ✏️ front of the card
+      text: "Placeholder: a line for card 1.",   // ✏️ back of the card (shown while it flips)
+      audio: "voiceovers/Card 1.mp4",
       media: [
-        { src: null, caption: "Placeholder 1" }, // e.g. { src: "media/first-date.jpeg", caption: "Our first date" }
-        { src: null, caption: "Placeholder 2" }, // e.g. { src: "media/first-clip.mp4" }
-        { src: null, caption: "Placeholder 3" },
-        { src: null, caption: "Placeholder 4" },
+        { src: "media/Card 1/WhatsApp Video 2026-11-21 at 18.59.47.mp4" },
+        { src: "media/Card 1/WhatsApp Video 2026-11-21 at 18.59.48.mp4" },
       ],
     },
 
+    // ── Card 2 ── 1 media file(s)
     {
-      date: "Month 2",
-      title: "Falling for you",
-      text: "Placeholder: a memory from the second month.",
-      audio: null, // e.g. "audio/card2.mp3"
+      date: "Chapter two",
+      title: "Title for card 2",                // ✏️ front of the card
+      text: "Placeholder: a line for card 2.",   // ✏️ back of the card (shown while it flips)
+      audio: "voiceovers/Card 2.m4a.mp4",
       media: [
-        { src: null, caption: "Placeholder 1" },
-        { src: null, caption: "Placeholder 2" },
-        { src: null, caption: "Placeholder 3" },
-        { src: null, caption: "Placeholder 4" },
+        { src: "media/Card 2/WhatsApp Video 2026-11-21 at 18.59.32.mp4" },
       ],
     },
 
+    // ── Card 3 ── 4 media file(s)
     {
-      date: "Month 4",
-      title: "Our thing",
-      text: "Placeholder: an inside joke, a favourite place, a ritual only you two have.",
-      audio: null, // e.g. "audio/card3.mp3"
+      date: "Chapter three",
+      title: "Title for card 3",                // ✏️ front of the card
+      text: "Placeholder: a line for card 3.",   // ✏️ back of the card (shown while it flips)
+      audio: "voiceovers/Card 3.m4a.mp4",
       media: [
-        { src: null, caption: "Placeholder 1" },
-        { src: null, caption: "Placeholder 2" },
-        { src: null, caption: "Placeholder 3" },
-        { src: null, caption: "Placeholder 4" },
+        { src: "media/Card 3/WhatsApp Image 2026-11-21 at 18.59.28.jpeg" },
+        { src: "media/Card 3/WhatsApp Image 2026-11-21 at 18.59.29 (1).jpeg" },
+        { src: "media/Card 3/WhatsApp Image 2026-11-21 at 18.59.29 (2).jpeg" },
+        { src: "media/Card 3/WhatsApp Image 2026-11-21 at 18.59.29.jpeg" },
       ],
     },
 
+    // ── Card 4 ── 3 media file(s)
     {
-      date: "Month 6",
-      title: "Today",
-      text: "Placeholder: today. Still falling for you.",
-      audio: null, // e.g. "audio/card4.mp3"
+      date: "Chapter four",
+      title: "Title for card 4",                // ✏️ front of the card
+      text: "Placeholder: a line for card 4.",   // ✏️ back of the card (shown while it flips)
+      audio: "voiceovers/Card 4.m4a.mp4",
       media: [
-        { src: null, caption: "Placeholder 1" },
-        { src: null, caption: "Placeholder 2" },
-        { src: null, caption: "Placeholder 3" },
-        { src: null, caption: "Placeholder 4" },
+        { src: "media/Card 4/WhatsApp Image 2026-11-21 at 18.59.30 (5).jpeg" },
+        { src: "media/Card 4/WhatsApp Image 2026-11-21 at 18.59.30 (6).jpeg" },
+        { src: "media/Card 4/WhatsApp Image 2026-11-21 at 18.59.30.jpeg" },
+      ],
+    },
+
+    // ── Card 5 ── 14 media file(s)
+    {
+      date: "Chapter five",
+      title: "Title for card 5",                // ✏️ front of the card
+      text: "Placeholder: a line for card 5.",   // ✏️ back of the card (shown while it flips)
+      audio: "voiceovers/Card 5.m4a.mp4",
+      media: [
+        { src: "media/Card 5/WhatsApp Video 2026-11-21 at 18.59.32 (1).mp4" },
+        { src: "media/Card 5/WhatsApp Video 2026-11-21 at 18.59.36 (1).mp4" },
+        { src: "media/Card 5/WhatsApp Video 2026-11-21 at 18.59.36.mp4" },
+        { src: "media/Card 5/WhatsApp Video 2026-11-21 at 18.59.42.mp4" },
+        { src: "media/Card 5/cheek kiss.mp4" },
+        { src: "media/Card 5/WhatsApp Image 2026-11-21 at 18.59.28 (1).jpeg" },
+        { src: "media/Card 5/WhatsApp Image 2026-11-21 at 18.59.28 (2).jpeg" },
+        { src: "media/Card 5/WhatsApp Image 2026-11-21 at 18.59.28 (3).jpeg" },
+        { src: "media/Card 5/WhatsApp Image 2026-11-21 at 18.59.30 (1).jpeg" },
+        { src: "media/Card 5/WhatsApp Image 2026-11-21 at 18.59.30 (2).jpeg" },
+        { src: "media/Card 5/WhatsApp Image 2026-11-21 at 18.59.30 (3).jpeg" },
+        { src: "media/Card 5/WhatsApp Image 2026-11-21 at 18.59.30 (4).jpeg" },
+        { src: "media/Card 5/WhatsApp Image 2026-11-21 at 18.59.31 (2).jpeg" },
+        { src: "media/Card 5/WhatsApp Image 2026-11-21 at 18.59.31.jpeg" },
+      ],
+    },
+
+    // ── Card 6 ── 3 media file(s)
+    {
+      date: "Chapter six",
+      title: "Title for card 6",                // ✏️ front of the card
+      text: "Placeholder: a line for card 6.",   // ✏️ back of the card (shown while it flips)
+      audio: "voiceovers/Card 6.m4a.mp4",
+      media: [
+        { src: "media/Card 6/WhatsApp Video 2026-11-21 at 18.59.40.mp4" },
+        { src: "media/Card 6/WhatsApp Video 2026-11-21 at 18.59.41 (1).mp4" },
+        { src: "media/Card 6/WhatsApp Image 2026-11-21 at 18.59.31 (1).jpeg" },
+      ],
+    },
+
+    // ── Card 7 ── 3 media file(s)
+    {
+      date: "Chapter seven",
+      title: "Title for card 7",                // ✏️ front of the card
+      text: "Placeholder: a line for card 7.",   // ✏️ back of the card (shown while it flips)
+      audio: "voiceovers/Card 7.m4a.mp4",
+      media: [
+        { src: "media/Card 7/WhatsApp Video 2026-11-21 at 18.59.35.mp4" },
+        { src: "media/Card 7/WhatsApp Image 2026-11-21 at 18.59.31 (3).jpeg" },
+        { src: "media/Card 7/WhatsApp Image 2026-11-21 at 18.59.31 (4).jpeg" },
+      ],
+    },
+
+    // ── Card 8 ── 7 media file(s)
+    {
+      date: "Chapter eight",
+      title: "Title for card 8",                // ✏️ front of the card
+      text: "Placeholder: a line for card 8.",   // ✏️ back of the card (shown while it flips)
+      audio: "voiceovers/Card 8.m4a.mp4",
+      media: [
+        { src: "media/Card 8/WhatsApp Video 2026-11-21 at 18.59.43.mp4" },
+        { src: "media/Card 8/WhatsApp Image 2026-11-21 at 18.59.28 (4).jpeg" },
+        { src: "media/Card 8/WhatsApp Image 2026-11-21 at 18.59.31 (5).jpeg" },
+        { src: "media/Card 8/WhatsApp Image 2026-11-21 at 18.59.31 (6).jpeg" },
+        { src: "media/Card 8/WhatsApp Image 2026-11-21 at 18.59.31 (7).jpeg" },
+        { src: "media/Card 8/WhatsApp Image 2026-11-21 at 18.59.31 (8).jpeg" },
+        { src: "media/Card 8/WhatsApp Image 2026-11-21 at 18.59.32.jpeg" },
       ],
     },
   ],
