@@ -120,7 +120,6 @@
   const HEART = ["rr.rr", "rWrrr", "rrrrr", ".rrr.", "..r.."];
   const HEART_S = ["r.r", "rrr", ".r."];
   const BOTTLE = [".BB.", ".ll.", "bbbb", "bdbb", "WWWW", "bWWb", "bdbb", "bbbb", "bbbb", ".bb."]; // 4×10 water bottle
-  const BOTTLE_TIP = ["...bbbbbb.", "BBlbdbWdbb", "BBlbbbWbbb", "...bbbbbb."]; // tipped up for drinking (facing right)
   const PHONE = ["kkk", "kbk", "kbk", "kbk", "kkk"];
   const PHONE_ON = ["kkk", "kdk", "kWk", "kdk", "kkk"];
   const BOUQUET = [ // 7×10, held at col 3 row 7
@@ -266,37 +265,43 @@
     dur: 8,
     draw(px, t) {
       ground(px);
-      // Fit Factory building
+      // timeline
+      const walkEnd = 3.0, reach = [3.3, 3.8], swap = 4.4, back = [4.6, 5.0], turn = 5.2, go = [5.4, 7.4];
+      const step = (on) => (on ? (Math.floor(t / 0.2) % 2 ? "walk" : "walk2") : "stand");
+      // Fit Factory building — the door opens as they walk up
       px.rect(64, 14, 45, 44, "W"); px.rect(62, 12, 48, 3, "w");
       for (let y = 37; y < 57; y += 3) for (let x = 66 + ((y / 3) % 2) * 3; x < 107; x += 6) px.rect(x, y, 3, 1, "w");
       px.rect(66, 17, 41, 16, "h"); px.rect(67, 18, 39, 14, "H");
       px.text("FIT", 81, 19, "W"); px.text("FACTORY", 73, 26, "W");
       px.rect(67, 36, 11, 9, "w"); px.rect(68, 37, 9, 7, "l"); px.rect(70, 40, 5, 1, "k"); px.rect(69, 39, 1, 3, "k"); px.rect(75, 39, 1, 3, "k");
       px.rect(97, 36, 10, 9, "w"); px.rect(98, 37, 8, 7, "l"); px.line(99, 43, 104, 38, "W");
-      px.rect(83, 38, 11, 20, "w"); px.rect(84, 39, 9, 8, "l"); px.rect(84, 48, 9, 9, "W"); px.dot(91, 51, "k"); px.dot(91, 52, "k");
+      const doorOpen = t > 6.2 && t < 7.9;
+      px.rect(83, 38, 11, 20, "w");
+      if (doorOpen) { px.rect(84, 39, 9, 18, "h"); px.rect(85, 40, 7, 4, "H"); px.rect(84, 39, 2, 18, "W"); }
+      else { px.rect(84, 39, 9, 8, "l"); px.rect(84, 48, 9, 9, "W"); px.dot(91, 51, "k"); px.dot(91, 52, "k"); }
       px.rect(81, 57, 15, 1, "s");
-      // timeline
-      const walkEnd = 3.0, reach = [3.3, 3.8], swap = 4.4, back = [4.6, 5.0], drink = [5.4, 6.7];
-      const gx = Math.round(lerp(4, 33, prog(t, 0.2, walkEnd)));
-      const walking = t > 0.2 && t < walkEnd;
-      const legs = walking ? (Math.floor(t / 0.2) % 2 ? "walk" : "walk2") : "stand";
-      // her (facing left, gym bag on her shoulder, bottle in hand)
-      const herArm = t < reach[0] ? [1, 7] : t < back[0] ? mix([1, 7], [6, 0], prog(t, reach[0] + 0.1, reach[1] + 0.1)) : mix([6, 0], [1, 7], prog(t, back[0], back[1]));
-      const g = person(px, { x: 48, dir: -1, girl: true, armF: herArm, armB: [1, 6],
-        behind: () => { px.line(49, 41, 53, 46, "k"); px.spr(GYMBAG, 50, 44); } });
-      if (t < swap) px.spr(BOTTLE, g.hF[0] - 2, g.hF[1] - 6);
-      // him
+      // positions: he walks up to her, then they walk into the gym together and disappear through the door
+      const together = prog(t, go[0], go[1]);
+      const gx = Math.round(lerp(48, 90, together));
+      const bx = t < go[0] ? Math.round(lerp(4, 33, prog(t, 0.2, walkEnd))) : Math.round(lerp(33, 89, prog(t, go[0] + 0.2, go[1] + 0.3)));
+      const herWalk = t > go[0] && t < go[1], hisWalk = (t > 0.2 && t < walkEnd) || (t > go[0] + 0.2 && t < go[1] + 0.3);
+      const gDir = t >= turn ? 1 : -1;
+      // him: reaches straight out for the bottle, then just carries it
       let arm = [1, 7];
       if (t > reach[0] && t < back[0]) arm = mix([1, 7], [6, 0], prog(t, reach[0], reach[1]));
-      else if (t >= back[0] && t < drink[0]) arm = mix([6, 0], [2, 4], prog(t, back[0], back[1]));
-      else if (t >= drink[0] && t < drink[1]) arm = mix([2, 4], [2, -4], prog(t, drink[0], drink[0] + 0.4));
-      else if (t >= drink[1]) arm = mix([2, -4], [1, 7], prog(t, drink[1], drink[1] + 0.4));
-      const b = person(px, { x: gx, dir: 1, legs, armF: arm, armB: walking ? [Math.floor(t / 0.2) % 2 ? 2 : -2, 7] : [-1, 7] });
-      if (t >= swap) {
-        if (t > drink[0] + 0.3 && t < drink[1]) px.spr(BOTTLE_TIP, b.hF[0] - 3, b.hF[1] - 2);
-        else px.spr(BOTTLE, b.hF[0] - 1, b.hF[1] - 6);
+      else if (t >= back[0]) arm = mix([6, 0], [2, 5], prog(t, back[0], back[1]));
+      if (bx < 86) {
+        const b = person(px, { x: bx, dir: 1, legs: step(hisWalk), armF: arm, armB: hisWalk ? [Math.floor(t / 0.2) % 2 ? 2 : -2, 7] : [-1, 7] });
+        if (t >= swap) px.spr(BOTTLE, b.hF[0] - 1, b.hF[1] - 6);
       }
-      floatHeart(px, 39, 22, t, 6.0, 7.6);
+      // her: gym bag on her shoulder, hands him the bottle, turns and leads the way in
+      const herArm = t < reach[0] ? [1, 7] : t < back[0] ? mix([1, 7], [6, 0], prog(t, reach[0] + 0.1, reach[1] + 0.1)) : mix([6, 0], [1, 7], prog(t, back[0], back[1]));
+      if (gx < 86) {
+        const g = person(px, { x: gx, dir: gDir, girl: true, legs: step(herWalk), armF: herArm, armB: [1, 6],
+          behind: () => { const bagX = gDir === 1 ? gx - 11 : gx + 2; px.line(gx, 41, gDir === 1 ? gx - 5 : gx + 5, 46, "k"); px.spr(GYMBAG, bagX, 44); } });
+        if (t < swap) px.spr(BOTTLE, g.hF[0] - 2, g.hF[1] - 6);
+      }
+      floatHeart(px, 40, 22, t, 4.6, 6.0);
     },
   };
 
@@ -419,61 +424,6 @@
     },
   };
 
-  // Card 6 — cake (no candle): side by side, his arm around her, both hands on the knife;
-  // then she turns and feeds him a bite, and he feeds her from the same slice
-  const cake = {
-    dur: 10,
-    draw(px, t) {
-      ground(px);
-      // bunting
-      px.line(0, 3, W, 3, "w");
-      for (let x = 2; x < W; x += 8) { const c = ["m", "p", "y", "W"][(x / 8) % 4 | 0]; px.spr(["ccccc", ".ccc.", "..c.."], x, 4, false, { c }); }
-      // table
-      px.rect(48, 47, 27, 2, "W"); px.rect(48, 49, 27, 3, "s"); for (let x = 49; x < 75; x += 3) px.dot(x, 52, "s");
-      px.rect(51, 52, 2, 6, "w"); px.rect(70, 52, 2, 6, "w");
-      // the cake: two tiers, pink drips, strawberries on top — no candle
-      px.rect(50, 46, 21, 1, "w");
-      px.rect(51, 38, 19, 8, "W"); px.rect(51, 38, 19, 1, "m"); [52, 55, 58, 61, 64, 67].forEach((x, i) => px.rect(x, 39, 1, 1 + (i % 2), "m"));
-      for (let x = 53; x < 69; x += 4) px.dot(x, 43, "s");
-      px.rect(55, 31, 11, 7, "W"); px.rect(55, 31, 11, 1, "m"); [56, 59, 62, 65].forEach((x, i) => px.rect(x, 32, 1, 1 + (i % 2), "m"));
-      [[57, 29], [60, 28], [63, 29]].forEach(([x, y]) => { px.rect(x, y, 2, 2, "r"); px.dot(x, y - 1, "G"); });
-      const cutDone = t > 2.6;
-      if (cutDone) { px.line(56, 39, 58, 45, "s"); }
-      // timeline
-      const hold = [0.6, 3.2], press = prog(t, 1.4, 2.2) - prog(t, 2.6, 3.0);
-      const turn = 3.8, feedHim = [4.2, 5.0], bite1 = 5.2, swap = 5.9, feedHer = [6.0, 6.8], bite2 = 7.0;
-      const p = Math.round(press * 2);
-      // him (behind her): during the cut his arm goes around her to the knife
-      let bA = [1, 7];
-      if (t > hold[0] && t < hold[1] + 0.4) bA = mix([1, 7], [16, -3 + p], prog(t, hold[0], hold[0] + 0.5) - prog(t, hold[1], hold[1] + 0.4));
-      if (t >= swap && t < 8) bA = t < feedHer[0] ? [3, 3] : t < bite2 + 0.3 ? mix([3, 3], [6, -4], prog(t, feedHer[0], feedHer[1])) : mix([6, -4], [1, 7], prog(t, bite2 + 0.3, bite2 + 0.7));
-      const b = person(px, { x: 31, dir: 1, armF: bA, blush: t > bite1 });
-      // her: cuts, then turns around to face him
-      const faceHim = t >= turn;
-      let gA = [1, 7];
-      if (t > hold[0] && t < hold[1] + 0.4) gA = mix([1, 7], [8, -3 + p], prog(t, hold[0], hold[0] + 0.5) - prog(t, hold[1], hold[1] + 0.4));
-      if (t >= 3.4 && t < swap) gA = t < feedHim[0] ? [3, 3] : t < bite1 + 0.3 ? mix([3, 3], [6, -4], prog(t, feedHim[0], feedHim[1])) : mix([6, -4], [3, 3], prog(t, bite1 + 0.3, bite1 + 0.6));
-      const g = person(px, { x: 41, dir: faceHim ? -1 : 1, girl: true, armF: gA, blush: t > bite2 });
-      // the knife: dark handle in both hands, long silver blade angled into the cake
-      if (t > hold[0] + 0.4 && t < hold[1]) {
-        px.rect(46, 36 + p, 4, 2, "h"); px.rect(50, 36 + p, 1, 2, "k");
-        px.line(51, 36 + p, 58, 39 + p, "d"); px.line(51, 37 + p, 58, 40 + p, "L"); px.dot(59, 40 + p, "d");
-      }
-      // fork with the slice: first in her hand (feeding him), then in his (feeding her)
-      const slice = (h, dir, size) => {
-        px.line(h[0], h[1], h[0] + 3 * dir, h[1] - 1, "d");
-        const x = dir > 0 ? h[0] + 3 : h[0] - 5;
-        if (size === 2) px.spr(["mmm", "WWW", "WsW"], x, h[1] - 3, dir < 0);
-        if (size === 1) px.spr(["mm", "Ws"], x + (dir < 0 ? 1 : 0), h[1] - 2, dir < 0);
-      };
-      if (t >= 3.4 && t < swap) slice(g.hF, faceHim ? -1 : 1, t < bite1 ? 2 : 1);
-      if (t >= swap && t < bite2 + 0.6) slice(b.hF, 1, t < bite2 ? 1 : 0);
-      floatHeart(px, 34, 12, t, 7.6, 9.4);
-      floatHeart(px, 28, 18, t, 7.9, 9.5, true);
-      floatHeart(px, 42, 16, t, 8.1, 9.6, true);
-    },
-  };
-
   // Card 7 — close-up in the car: he opens a ring box (gold ring, sparkling diamond), she's speechless
   const GUY_BIG = [
     "....hhhhhhhh....",
@@ -529,18 +479,29 @@
     "y...Y",
     ".yYy.",
   ];
+  // shared close-up car interior (front view through the windscreen): him driving (left), her (right)
+  const carInside = (px, blushHim, blushHer) => {
+    px.rect(18, 16, 24, 30, "w"); px.rect(68, 14, 26, 32, "w"); px.rect(19, 17, 22, 1, "s"); px.rect(69, 15, 24, 1, "s");
+    px.rect(14, 42, 33, 20, "l"); px.rect(14, 42, 4, 20, "L"); px.rect(27, 41, 7, 3, "W"); px.line(16, 43, 40, 61, "k", 2);
+    px.spr(GUY_BIG, 22, 25, false, { q: blushHim ? "m" : "W" });
+    px.rect(63, 43, 35, 19, "p"); px.rect(94, 43, 4, 19, "P"); px.rect(76, 42, 8, 3, "W"); px.line(95, 44, 70, 61, "k", 2);
+    px.spr(GIRL_BIG, 71, 22, false, { q: blushHer ? "m" : "W" });
+  };
+  const carFrame = (px, t) => {
+    // steering wheel in front of him, windscreen frame, rear-view mirror with a swinging heart
+    px.line(10, 61, 14, 54, "k", 2); px.line(14, 54, 22, 51, "k", 2); px.line(22, 51, 32, 51, "k", 2); px.line(32, 51, 40, 54, "k", 2); px.line(40, 54, 44, 61, "k", 2);
+    px.rect(25, 56, 4, 6, "k");
+    px.rect(0, 0, W, 2, "W"); px.line(0, 2, 7, 61, "W", 2); px.line(108, 2, 101, 61, "W", 2);
+    px.rect(48, 2, 15, 5, "w"); px.rect(49, 3, 13, 3, "l"); px.rect(54, 0, 3, 2, "k");
+    const sw = Math.round(Math.sin(t * 3) * 2);
+    px.line(55, 7, 55 + sw, 11, "k"); px.spr(HEART_S, 54 + sw, 11);
+  };
+
   const ring = {
     dur: 7,
     draw(px, t) {
       const opened = t > 1.6, react = t > 2.1;
-      // headrests + seats
-      px.rect(18, 16, 24, 30, "w"); px.rect(68, 14, 26, 32, "w"); px.rect(19, 17, 22, 1, "s"); px.rect(69, 15, 24, 1, "s");
-      // him (left): shirt, seatbelt, big head
-      px.rect(14, 42, 33, 20, "l"); px.rect(14, 42, 4, 20, "L"); px.rect(27, 41, 7, 3, "W"); px.line(16, 43, 40, 61, "k", 2);
-      px.spr(GUY_BIG, 22, 25, false, { q: react ? "m" : "W" });
-      // her (right): top, seatbelt, big head with long hair
-      px.rect(63, 43, 35, 19, "p"); px.rect(94, 43, 4, 19, "P"); px.rect(76, 42, 8, 3, "W"); px.line(95, 44, 70, 61, "k", 2);
-      px.spr(GIRL_BIG, 71, 22, false, { q: react ? "m" : "W" });
+      carInside(px, react, react);
       // she covers her mouth with both hands
       if (react && t < 6.5) {
         px.line(66, 50, 75, 39, "W", 2); px.line(95, 50, 86, 39, "W", 2);
@@ -549,7 +510,7 @@
       // his hand bringing the box up between them
       const up = prog(t, 0.2, 0.9);
       const by = Math.round(lerp(60, 50, up)), bx = 49;
-      px.line(42, 55, bx + 2, by + 3, "W", 2);
+      px.line(44, 52, bx + 2, by + 3, "W", 2);
       // ring box: lid flips open, gold ring with a diamond on a dark cushion
       if (opened) {
         px.rect(bx, by - 9, 13, 9, "R"); px.rect(bx + 1, by - 8, 11, 7, "h");
@@ -566,14 +527,68 @@
         if (f === 1) star(bx + 10, by - 11);
         if (f === 2) star(bx + 6, by - 14);
       }
-      // windscreen frame, rear-view mirror with a swinging heart, dashboard
-      px.rect(0, 0, W, 2, "W"); px.line(0, 2, 7, 61, "W", 2); px.line(108, 2, 101, 61, "W", 2);
-      px.rect(48, 2, 15, 5, "w"); px.rect(49, 3, 13, 3, "l"); px.rect(54, 0, 3, 2, "k");
-      const sw = Math.round(Math.sin(t * 3) * 2);
-      px.line(55, 7, 55 + sw, 11, "k"); px.spr(HEART_S, 54 + sw, 11);
+      carFrame(px, t);
       floatHeart(px, 98, 26, t, 2.6, 4.6, true);
       floatHeart(px, 66, 16, t, 3.0, 5.2);
       floatHeart(px, 100, 12, t, 3.8, 5.8);
+    },
+  };
+
+  // Card 6 — in the car: a small white cake with chocolate frosting on the console; they cut it
+  // together, then she feeds him a bite and he feeds her from the same slice
+  const CAKE = [ // 11×8: chocolate top with drips, white sponge, chocolate sprinkles
+    "..CCCCCCC..",
+    ".CcCCcCCcC.",
+    "CCcCCCCcCCC",
+    "WCWWCWWWCWW",
+    "WWWWWWCWWWW",
+    "WWCWWWWWWCW",
+    "WWWWWCWWWWW",
+    "sssssssssss",
+  ];
+  const cake = {
+    dur: 10,
+    draw(px, t) {
+      const knife = [0.5, 3.0], press = prog(t, 1.3, 2.0) - prog(t, 2.4, 2.8);
+      const fork = 3.2, feedHim = [3.8, 4.6], bite1 = 4.8, swap = 5.6, feedHer = [6.0, 6.8], bite2 = 7.0;
+      carInside(px, t > bite1, t > bite2);
+      // small plate + cake on the console between them (a slice missing after the cut)
+      px.rect(47, 55, 17, 2, "W"); px.rect(48, 57, 15, 1, "w");
+      px.spr(CAKE, 50, 47);
+      if (t > 3.0) { px.rect(55, 47, 3, 8, "s"); px.rect(55, 47, 3, 1, "C"); }
+      // both hands on a small knife, cutting
+      const p = Math.round(press * 3);
+      const kOn = t > knife[0] && t < knife[1] + 0.3;
+      const reach = prog(t, knife[0], knife[0] + 0.4) - prog(t, knife[1], knife[1] + 0.3);
+      if (kOn) {
+        const hy = Math.round(lerp(58, 41 + p, reach));
+        px.line(44, 52, lerp(44, 53, reach), hy, "W", 2); px.line(66, 52, lerp(66, 58, reach), hy, "W", 2);
+        if (reach > 0.6) { px.rect(54, 39 + p, 3, 4, "h"); px.rect(55, 43 + p, 2, 6, "d"); px.dot(55, 49 + p, "d"); }
+      }
+      // fork with a slice (white with chocolate on top)
+      const slice = (x, y, size) => {
+        px.line(x, y, x, y + 6, "d"); px.dot(x - 1, y - 1, "d"); px.dot(x + 1, y - 1, "d");
+        if (size === 2) px.spr(["CCC", "WCW", "WWW"], x - 1, y - 4);
+        if (size === 1) px.spr(["CC", "WW"], x - 1, y - 3);
+      };
+      // she feeds him
+      if (t >= fork && t < swap) {
+        const k = prog(t, feedHim[0], feedHim[1]) - prog(t, bite1 + 0.2, bite1 + 0.6);
+        const fx = Math.round(lerp(64, 34, k)), fy = Math.round(lerp(46, 40, k));
+        px.line(68, 52, fx + 1, fy + 6, "W", 2);
+        slice(fx, fy, t < bite1 ? 2 : 1);
+      }
+      // he feeds her from the same slice
+      if (t >= swap && t < bite2 + 0.6) {
+        const k = prog(t, feedHer[0], feedHer[1]) - prog(t, bite2 + 0.2, bite2 + 0.6);
+        const fx = Math.round(lerp(46, 80, k)), fy = Math.round(lerp(46, 39, k));
+        px.line(42, 52, fx - 1, fy + 6, "W", 2);
+        slice(fx, fy, t < bite2 ? 1 : 0);
+      }
+      carFrame(px, t);
+      floatHeart(px, 55, 24, t, 7.6, 9.4);
+      floatHeart(px, 47, 30, t, 7.9, 9.5, true);
+      floatHeart(px, 63, 30, t, 8.1, 9.6, true);
     },
   };
 
