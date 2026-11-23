@@ -151,7 +151,7 @@ window.STORY = {
 
     {
       type: "counter",
-      title: "Together for",
+      title: "We zijn",
     },
 
     {
@@ -160,8 +160,8 @@ window.STORY = {
       // voiceovers/Letter.mp4. After editing Letter.txt or re-recording, run:  python tools/align_letter.py
       type: "letter",
       prompt: "Tap to open",
-      title: "One last thing…",      // front of the letter card
-      signoff: "— Yours",            // shown under the letter; set to "" to hide
+      title: "6 maanden",      // front of the letter card
+      signoff: "— jouw Kiren",            // shown under the letter; set to "" to hide
       // If the blue highlight runs consistently ahead of your voice, make this negative (e.g. -0.2);
       // if it lags behind, make it positive (e.g. 0.2). In seconds.
       syncOffset: 0,

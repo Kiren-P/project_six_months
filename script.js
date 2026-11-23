@@ -206,7 +206,7 @@
       const tick = () => {
         const ms = Date.now() - start;
         big.textContent = `${Math.floor(ms / 864e5)} days`;
-        small.textContent = `${Math.floor(ms / 36e5) % 24}h ${Math.floor(ms / 6e4) % 60}m ${Math.floor(ms / 1e3) % 60}s — and counting`;
+        small.textContent = `${Math.floor(ms / 36e5) % 24}h ${Math.floor(ms / 6e4) % 60}m ${Math.floor(ms / 1e3) % 60}s samen`;
       };
       tick();
       setInterval(tick, 1000);
