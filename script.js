@@ -205,8 +205,8 @@
       const start = parseDate(startDate).getTime();
       const tick = () => {
         const ms = Date.now() - start;
-        big.textContent = `${Math.floor(ms / 864e5)} days`;
-        small.textContent = `${Math.floor(ms / 36e5) % 24}h ${Math.floor(ms / 6e4) % 60}m ${Math.floor(ms / 1e3) % 60}s samen`;
+        big.textContent = `${Math.floor(ms / 864e5)} dagen`;
+        small.textContent = `${Math.floor(ms / 36e5) % 24}u ${Math.floor(ms / 6e4) % 60}m ${Math.floor(ms / 1e3) % 60}s`;
       };
       tick();
       setInterval(tick, 1000);
