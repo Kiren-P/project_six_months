@@ -1,178 +1,694 @@
-// Looping white line-art scenes shown at the bottom of each story card (before it's flipped).
-// Pick one per card in story.js with   scene: "texting"   — available names are at the bottom of this file.
-// Everything is drawn in a 320 × 150 box; the animations live in scenes.css.
+// Pixel-art scenes shown at the bottom of each story card (before it's flipped).
+// Pick one per card in story.js with   scene: "texting"   — the names are the keys of SCENES below.
+//
+// Each scene is drawn on a tiny 110 × 62 pixel grid at 10 frames per second and scaled up crisply.
+// A scene is { dur: seconds per loop, draw(px, t) } where t is the time inside the loop.
 (() => {
-  const G = 142; // ground line
-  const p = (d, cls) => `<path${cls ? ` class="${cls}"` : ""} d="${d}"/>`;
-  const f = (d) => `<path class="f" d="${d}"/>`;
-  // a group that can be animated (rotate/translate) around origin (ox, oy)
-  const grp = (cls, ox, oy, inner) => `<g class="${cls}" style="transform-origin:${ox}px ${oy}px">${inner}</g>`;
-  const heart = (x, y, s, cls) =>
-    grp(cls, x, y, `<path class="f" transform="translate(${x} ${y}) scale(${s})" d="M0 3C-5-1-6-6-2.5-6C-1-6 0-4.8 0-4.8C0-4.8 1-6 2.5-6C6-6 5-1 0 3Z"/>`);
+  const W = 110, H = 62, GROUND = 57, FPS = 10;
 
-  // side-view head (dir 1 = facing right, -1 = facing left); girls get long hair flowing down behind
-  const head = (x, y, girl, dir = 1) =>
-    (girl ? f(`M${x + dir * 3} ${y - 8}C${x - dir * 9} ${y - 10} ${x - dir * 13} ${y + 2} ${x - dir * 11} ${y + 17}C${x - dir * 8} ${y + 15} ${x - dir * 6} ${y + 10} ${x - dir * 5} ${y + 4}Z`) : "") +
-    `<circle class="f" cx="${x}" cy="${y}" r="8"/>`;
-
-  // standing person without arms, feet on the ground at x. Guys get swingable legs (legCls + "a"/"b").
-  const body = (x, girl, dir = 1, legCls = "") => {
-    const h = head(x + dir, 80, girl, dir);
-    if (girl) return h + p(`M${x} 88V98`) + p(`M${x - 3} 97L${x - 12} 124H${x + 12}L${x + 3} 97Z`, "dress") + p(`M${x - 5} 124V${G}M${x + 5} 124V${G}`);
-    return h + p(`M${x} 88V116`) + grp(legCls + "a", x, 116, p(`M${x} 116L${x - 6} ${G}`)) + grp(legCls + "b", x, 116, p(`M${x} 116L${x + 6} ${G}`));
+  // ── palette (one character per colour in the sprites; "." = transparent) ──────────
+  const PAL = {
+    W: "#ffffff", w: "#ffe4ee", s: "#ffc4da", m: "#ff6f9f", r: "#e3245f", R: "#a3134a",
+    k: "#3d0c2a", h: "#6b2147", H: "#8f3a68",
+    l: "#d6f1ff", L: "#a6d8f2", b: "#8fd3ff", B: "#3f9ee0", d: "#e8fbff",
+    p: "#ecd2ff", P: "#c79bf0", g: "#6cc06c", G: "#3f8f4a", y: "#ffd25e", Y: "#e0a526",
+    c: "#a8693f", C: "#6e4428", n: "#2e2233", f: "#ff9a73", o: "#ffb347",
   };
-  // arm hanging from the shoulder (x, 95) towards dir; `extra` is whatever is held in the hand at (x + dir*7, 120)
-  const arm = (cls, x, dir, extra = "") => grp(cls, x, 95, p(`M${x} 95L${x + dir * 7} 120`) + extra);
+  const OUTLINE = [120, 20, 70, 215];
+  const RGB = Object.fromEntries(Object.entries(PAL).map(([k, v]) => [k, [1, 3, 5].map((i) => parseInt(v.slice(i, i + 2), 16))]));
 
-  // small bouquet held at (hx, hy), flowers pointing towards s (+1 right / -1 left)
-  const bouquet = (hx, hy, s) =>
-    f(`M${hx - 2 * s} ${hy}L${hx + 14 * s} ${hy - 7}L${hx + 14 * s} ${hy + 7}Z`) +
-    [[17, -6, 4], [19, 0, 4.4], [17, 6, 4], [23, -3, 3.6], [23, 3.6, 3.6]]
-      .map(([dx, dy, r]) => `<circle class="f" cx="${hx + dx * s}" cy="${hy + dy}" r="${r}"/><path class="petal" d="M${hx + dx * s - r / 2} ${hy + dy}a${r / 2} ${r / 2} 0 1 1 ${r / 2} ${r / 2}"/>`)
-      .join("");
-
-  // front view of a car with an open cabin; `inside` is drawn in the windscreen
-  const car = (inside) => `
-    <g class="car-bob">
-      ${p("M116 34H204")}${p("M112 38H208L232 100H88Z", "glass")}
-      ${inside}
-      ${p("M88 84H74V76H86M232 84H246V76H234")}
-      <rect x="78" y="100" width="164" height="26" rx="8" class="body"/>
-      <circle cx="98" cy="112" r="6" class="f"/><circle cx="222" cy="112" r="6" class="f"/>
-      <rect x="136" y="106" width="48" height="12" rx="3"/>${p("M144 110V114M152 110V114M160 110V114M168 110V114M176 110V114", "thin")}
-      <rect class="f" x="88" y="126" width="18" height="14" rx="3"/><rect class="f" x="214" y="126" width="18" height="14" rx="3"/>
-    </g>
-    <g class="road">${p("M60 128L34 138M262 128L288 138M54 116L30 122M266 116L290 122", "thin")}</g>`;
-  // front-view people for the car scenes
-  const frontGuy = (lookRight) => `
-    <circle cx="136" cy="56" r="9" class="face"/>
-    ${f("M127 54Q128 44 136 44Q145 44 145 54Q140 49 127 54Z")}
-    <circle class="f" cx="${lookRight ? 135 : 133}" cy="57" r="1.3"/><circle class="f" cx="${lookRight ? 141 : 139}" cy="57" r="1.3"/>
-    ${p(`M${lookRight ? 135 : 133} 61Q136 63 ${lookRight ? 140 : 139} 61`, "thin")}
-    ${p("M122 76Q136 68 150 76M124 76L126 100M148 76L146 100")}`;
-  const frontGirl = (inner) => `
-    ${f("M181 70L181 56Q181 44 192 44Q203 44 203 56L204 72L198 69L198 57Q198 52 192 52Q186 52 186 57L186 69Z")}
-    <circle cx="192" cy="58" r="8" class="face"/>${inner}`;
-
-  const SCENES = {
-    // ── Card 1: texting — she's on her bed, he's on his desk chair; the line between the phones draws a heart
-    texting: `
-      ${p("M14 142V90Q14 84 20 84Q26 84 26 90V114")}<rect x="26" y="112" width="96" height="10" rx="3"/>${p("M120 122V142")}
-      <ellipse cx="36" cy="106" rx="10" ry="5"/>
-      ${head(36, 76, true, 1)}${p("M44 110L38 90M44 110L68 95L88 110M46 111L96 111")}
-      ${p("M39 92L46 106")}${p("M39 92L50 104L54 89")}<rect class="f phone" x="51" y="76" width="7" height="12" rx="1.5"/>
-      ${p("M262 98H316M268 98V142M310 98V142M278 98H300M298 98L304 80")}
-      ${p("M214 114H244M244 114L250 82M229 114V130M214 138L229 130L244 138")}<circle cx="214" cy="140" r="2"/><circle cx="244" cy="140" r="2"/>
-      ${head(237, 76, false, -1)}${p("M236 110L238 90M236 110L214 108L212 139M234 112L218 112L220 139")}
-      ${p("M237 92L228 106")}${p("M237 92L224 104L220 89")}<rect class="f phone" x="213" y="76" width="7" height="12" rx="1.5"/>
-      <path class="tx-link" pathLength="100" d="M57 90C70 124 108 138 135 132C152 121 163 108 161 99C159 89 141 87 135 101C129 87 111 89 109 99C107 108 118 121 135 132C162 138 198 124 215 90"/>
-      ${heart(135, 112, 1.4, "tx-heart")}`,
-
-    // ── Card 2: he walks up to her, reaches out; she (with her gym bag) hands him her water bottle
-    gym: `<g class="g2-all">
-      ${body(255, true, -1)}
-      <rect x="259" y="104" width="18" height="12" rx="4"/>${p("M263 104L256 95M266 104V100H270V104", "thin")}
-      ${arm("g2-gf", 255, -1, `<g class="g2-bot1"><rect class="f" x="245" y="115" width="6" height="11" rx="2"/></g>`)}
-      <g class="g2-walk">
-        ${body(40, false, 1, "g2-l")}
-        ${arm("g2-ab", 40, -1)}
-        ${arm("g2-af", 40, 1, `<g class="g2-bot2"><rect class="f" x="44" y="115" width="6" height="11" rx="2"/></g>`)}
-      </g>
-      ${heart(230, 58, 1.5, "g2-heart")}
-    </g>`,
-
-    // ── Card 3: date at ZIKIRI beach bar — sushi and a coconut on the table between them
-    date: `
-      <g class="d-sign">
-        ${grp("d-palm", 49, 50, p("M49 50C40 40 30 40 22 46M49 50C58 40 68 40 76 46M49 50C46 40 48 32 54 28M49 50C38 46 30 50 26 58M49 50C60 46 68 50 72 58"))}
-        <rect x="6" y="50" width="86" height="36" rx="5"/>${p("M49 86V142")}
-        <text x="49" y="69" class="sign-big">ZIKIRI</text><text x="49" y="81" class="sign-small">beach bar</text>
-      </g>
-      ${p("M118 114H140M118 114L114 84M120 114V142M138 114V142")}
-      ${head(133, 78, true, 1)}${p("M130 110L132 90M130 110L150 110L151 140")}
-      ${grp("d-arm", 132, 94, p("M132 94L156 102M156 102L172 96M156 103L172 99", "") + `<circle class="f d-bite" cx="172" cy="97" r="2.6"/>`)}
-      ${p("M170 104H220M195 104V138M183 140H207")}
-      <ellipse cx="184" cy="102" rx="11" ry="2"/>
-      <circle cx="179" cy="96" r="4"/><circle class="f" cx="179" cy="96" r="1.4"/><circle cx="189" cy="96" r="4"/><circle class="f" cx="189" cy="96" r="1.4"/>
-      <circle cx="208" cy="95" r="8"/>${p("M203 92Q208 89 213 92", "thin")}${p("M211 88L218 74")}${f("M212 77Q218 67 226 74Z")}
-      ${p("M250 114H272M272 114L276 84M252 114V142M270 114V142")}
-      ${head(257, 78, false, -1)}${p("M260 110L258 90M260 110L240 110L239 140M258 94L232 101")}
-      ${heart(195, 64, 1.5, "d-heart")}`,
-
-    // ── Card 4: road trip — she sleeps on the passenger seat (neck pillow + blanket), legs on his lap under the wheel
-    roadtrip: car(`
-      ${frontGuy(false)}
-      <circle cx="136" cy="84" r="11"/>${p("M125 84H147M136 84V95", "thin")}
-      ${p("M122 77Q118 86 126 85M150 77Q154 86 146 85")}
-      <g class="r-head">${frontGirl(p("M187 58Q189 60 191 58M193 58Q195 60 197 58", "thin"))}</g>
-      ${p("M180 63Q186 75 192 71Q198 75 204 63", "pillow")}
-      ${p("M178 92L131 94M178 97L133 98M131 94L127 89M133 98L128 94")}
-      <path class="blanket" d="M177 74Q192 69 207 74L209 98Q200 94 192 99Q184 104 175 98Z"/>
-      <text class="zz z1" x="208" y="46">z</text><text class="zz z2" x="208" y="46">z</text><text class="zz z3" x="208" y="46">z</text>`),
-
-    // ── Card 5: he surprises her with a bouquet of roses
-    bouquet: `<g class="b-all">
-      ${body(120, false, 1)}${arm("b-gb", 120, -1)}
-      ${arm("b-gf", 120, 1, `<g class="b-bq1">${bouquet(127, 120, 1)}</g>`)}
-      ${body(196, true, -1)}
-      ${arm("b-hb", 196, 1)}
-      ${arm("b-hf", 196, -1, `<g class="b-bq2">${bouquet(189, 120, -1)}</g>`)}
-      ${heart(158, 60, 1.3, "b-h1")}${heart(146, 48, 0.9, "b-h2")}${heart(172, 44, 1, "b-h3")}
-    </g>`,
-
-    // ── Card 6: cutting the cake together, then feeding each other a bite from the same slice
-    cake: `<g class="c-all">
-      ${p("M146 112H174M150 112V142M170 112V142")}
-      <rect x="148" y="100" width="24" height="12" rx="2"/><rect x="153" y="92" width="14" height="8" rx="2"/>
-      ${p("M160 92V86")}${grp("c-flame", 160, 84, f("M160 79Q163 83 160 86Q157 83 160 79Z"))}
-      <g class="c-knife"><rect class="f" x="157" y="64" width="6" height="11" rx="2"/>${p("M158 75H162L160 92Z", "thin")}</g>
-      <g class="c-girl">${body(138, true, 1)}${arm("", 138, -1)}
-        ${arm("c-gf", 138, 1, `<g class="c-fork1">${p("M145 120L148 129", "thin")}<g class="c-slice1" style="transform-origin:149px 131px">${f("M146 129L153 131L148 134Z")}</g></g>`)}</g>
-      <g class="c-guy">${body(182, false, -1)}${arm("", 182, 1)}
-        ${arm("c-hf", 182, -1, `<g class="c-fork2">${p("M175 120L172 129", "thin")}<g class="c-slice2" style="transform-origin:171px 131px">${f("M174 129L167 131L172 134Z")}</g></g>`)}</g>
-      ${heart(160, 58, 1.4, "c-h1")}${heart(148, 46, 0.9, "c-h2")}${heart(172, 44, 1, "c-h3")}
-    </g>`,
-
-    // ── Card 7: in the car, he opens a ring box for her
-    ring: car(`
-      ${frontGuy(true)}
-      ${p("M122 77Q118 86 126 88M150 77Q158 84 156 90")}
-      ${frontGirl(`<circle class="f" cx="189" cy="58" r="1.3"/><circle class="f" cx="195" cy="58" r="1.3"/><circle cx="192" cy="63" r="1.6" class="thin"/>`)}
-      ${p("M180 76Q192 70 204 76M182 76L184 100M202 76L200 100")}
-      ${grp("k-hl", 182, 77, p("M182 77Q178 70 186 64"))}${grp("k-hr", 202, 77, p("M202 77Q206 70 198 64"))}
-      <g class="k-box" style="transform-origin:160px 92px">
-        <rect class="f" x="152" y="86" width="16" height="8" rx="1.5"/>
-        <g class="k-lid" style="transform-origin:160px 86px"><rect x="152" y="81" width="16" height="5" rx="1.5" class="lid"/></g>
-        <g class="k-ring"><circle cx="160" cy="82" r="3.4" class="thin"/>${f("M158 78.6L160 76L162 78.6L160 80Z")}</g>
-        ${grp("k-sp", 160, 74, p("M160 68V72M160 76V80M154 74H158M162 74H166", "thin"))}
-      </g>
-      ${heart(176, 40, 1.2, "k-h1")}${heart(160, 30, 0.9, "k-h2")}`),
-
-    // ── Card 8: a long hug, he walks up the stairs into the plane and it flies away
-    airport: `<g class="a-all">
-      <g class="a-plane" style="transform-origin:255px 121px">
-        ${p("M204 112L196 90H206L222 112")}
-        <path class="body" d="M200 112H290C306 112 314 117 314 121C314 126 306 130 290 130H206C199 130 196 126 196 121Z"/>
-        ${[236, 244, 252, 260, 268, 276, 284].map((x) => `<circle class="f" cx="${x}" cy="118" r="1.7"/>`).join("")}
-        ${f("M298 115L306 116.5L304 119H297Z")}
-        <rect x="210" y="115" width="8" height="13" rx="1.5" class="thin"/>
-        ${p("M244 124L230 138H240L262 124")}
-        ${p("M216 130V135M286 130V135", "thin")}<circle class="f" cx="216" cy="137" r="2.4"/><circle class="f" cx="286" cy="137" r="2.4"/>
-      </g>
-      <g class="a-stairs">${p("M188 142L208 128H212V142")}${p("M193 139H212M198 135.5H212M203 132H212", "thin")}</g>
-      ${body(92, true, 1)}${arm("", 92, -1)}${arm("a-wave", 92, 1)}
-      <g class="a-hugguy">${body(106, false, -1)}${arm("", 106, 1)}${arm("a-hug", 106, -1)}</g>
-      <g class="a-walk"><g class="a-guy">${body(106, false, 1, "a-l")}${arm("", 106, -1)}${arm("", 106, 1)}</g></g>
-      ${heart(99, 60, 1.4, "a-heart")}
-    </g>`,
+  // ── tiny 3×5 font for signs ─────────────────────────────────────────────────────
+  const FONT = {
+    A: [".#.", "#.#", "###", "#.#", "#.#"], B: ["##.", "#.#", "##.", "#.#", "##."], C: [".##", "#..", "#..", "#..", ".##"],
+    E: ["###", "#..", "##.", "#..", "###"], F: ["###", "#..", "##.", "#..", "#.."], H: ["#.#", "#.#", "###", "#.#", "#.#"],
+    I: ["###", ".#.", ".#.", ".#.", "###"], K: ["#.#", "#.#", "##.", "#.#", "#.#"], O: [".#.", "#.#", "#.#", "#.#", ".#."],
+    R: ["##.", "#.#", "##.", "#.#", "#.#"], T: ["###", ".#.", ".#.", ".#.", ".#."], Y: ["#.#", "#.#", ".#.", ".#.", ".#."],
+    Z: ["###", "..#", ".#.", "#..", "###"],
   };
 
-  // scenes that only use the middle of the box get zoomed in so they're drawn bigger
-  const VIEW = { cake: "84 44 152 102", bouquet: "76 30 168 116", roadtrip: "24 20 272 126", ring: "24 20 272 126" };
-  window.CARD_SCENES = Object.fromEntries(
-    Object.entries(SCENES).map(([name, inner]) => [
-      name,
-      `<svg class="cs cs-${name}" viewBox="${VIEW[name] || "0 0 320 150"}" preserveAspectRatio="xMidYMax meet" aria-hidden="true">${inner}</svg>`,
-    ])
-  );
+  // ── pixel buffer with drawing helpers ───────────────────────────────────────────
+  class Px {
+    constructor() { this.a = new Uint8ClampedArray(W * H * 4); }
+    clear() { this.a.fill(0); }
+    dot(x, y, c) {
+      x = Math.round(x); y = Math.round(y);
+      if (x < 0 || y < 0 || x >= W || y >= H || !RGB[c]) return;
+      const i = (y * W + x) * 4, v = RGB[c];
+      this.a[i] = v[0]; this.a[i + 1] = v[1]; this.a[i + 2] = v[2]; this.a[i + 3] = 255;
+    }
+    rect(x, y, w, h, c) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) this.dot(x + i, y + j, c); }
+    line(x0, y0, x1, y1, c, thick = 1) {
+      x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+      const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+      let e = dx + dy;
+      for (;;) {
+        this.dot(x0, y0, c);
+        if (thick > 1) this.dot(x0 + 1, y0, c);
+        if (x0 === x1 && y0 === y1) break;
+        const e2 = 2 * e;
+        if (e2 >= dy) { e += dy; x0 += sx; }
+        if (e2 <= dx) { e += dx; y0 += sy; }
+      }
+    }
+    // sprite: array of strings; flip mirrors it horizontally; map can swap colours
+    spr(rows, x, y, flip = false, map) {
+      const w = Math.max(...rows.map((r) => r.length));
+      rows.forEach((row, j) => {
+        for (let i = 0; i < row.length; i++) {
+          let c = row[i];
+          if (c === "." || c === " ") continue;
+          if (map && map[c]) c = map[c];
+          this.dot(x + (flip ? w - 1 - i : i), y + j, c);
+        }
+      });
+    }
+    text(str, x, y, c) {
+      for (const ch of str) {
+        if (ch === " ") { x += 2; continue; }
+        const g = FONT[ch];
+        if (g) g.forEach((row, j) => [...row].forEach((v, i) => v === "#" && this.dot(x + i, y + j, c)));
+        x += 4;
+      }
+    }
+    // 1px dark outline around everything drawn so far (classic pixel-art look)
+    outline() {
+      const a = this.a, src = new Uint8Array(W * H);
+      for (let i = 0; i < W * H; i++) src[i] = a[i * 4 + 3] > 0 ? 1 : 0;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const i = y * W + x;
+        if (src[i]) continue;
+        if ((x > 0 && src[i - 1]) || (x < W - 1 && src[i + 1]) || (y > 0 && src[i - W]) || (y < H - 1 && src[i + W])) {
+          a.set(OUTLINE, i * 4);
+        }
+      }
+    }
+  }
+
+  // ── timing helpers ─────────────────────────────────────────────────────────────
+  const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+  const prog = (t, a, b) => clamp((t - a) / (b - a)); // 0→1 between seconds a and b
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const ease = (k) => k * k * (3 - 2 * k);
+  const mix = (p0, p1, k) => [Math.round(lerp(p0[0], p1[0], ease(k))), Math.round(lerp(p0[1], p1[1], ease(k)))];
+  const blink = (t, period) => Math.floor(t / period) % 2 === 0;
+
+  // ── sprites ────────────────────────────────────────────────────────────────────
+  // side-view heads, facing right ("neck" column noted for placement)
+  const GUY_HEAD = [ // 7×8, neck col 3
+    "..hhhh.",
+    ".hhhhhh",
+    "hhhhWWW",
+    "hhWWWkW",
+    "hHWWWWW",
+    ".WWWWmW",
+    "..WWWW.",
+    "...WW..",
+  ];
+  const GIRL_HEAD = [ // 8×11, neck col 5
+    "..hhhhh.",
+    ".hhhhhhh",
+    "hhhhhWWW",
+    "hhhhWWkW",
+    "hhhHWWWW",
+    "hhhWWWmW",
+    "hhhhWWW.",
+    "hhhh.WW.",
+    "hhhh....",
+    ".hhh....",
+    "..hh....",
+  ];
+  const HEART = ["rr.rr", "rWrrr", "rrrrr", ".rrr.", "..r.."];
+  const HEART_S = ["r.r", "rrr", ".r."];
+  const BOTTLE = [".BB.", ".ll.", "bbbb", "bdbb", "WWWW", "bWWb", "bdbb", "bbbb", "bbbb", ".bb."]; // 4×10 water bottle
+  const BOTTLE_TIP = ["...bbbbbb.", "BBlbdbWdbb", "BBlbbbWbbb", "...bbbbbb."]; // tipped up for drinking (facing right)
+  const PHONE = ["kkk", "kbk", "kbk", "kbk", "kkk"];
+  const PHONE_ON = ["kkk", "kdk", "kWk", "kdk", "kkk"];
+  const BOUQUET = [ // 7×10, held at col 3 row 7
+    ".Rr.rR.",
+    "rrRrRrr",
+    "gRrrrRg",
+    ".grRrg.",
+    "gwWWWwg",
+    ".wWWWw.",
+    ".wWmWw.",
+    "..wWw..",
+    "..wWw..",
+    "...w...",
+  ];
+  const GYMBAG = ["..k...k..", "..k...k..", "BBBBBBBBB", "BbWWWWWbB", "BBBBBBBBB", "BBBkkkBBB"];
+
+  // ── people ─────────────────────────────────────────────────────────────────────
+  // o: { x, dir (1 right / -1 left), girl, sit (hip row) , legs: "stand"|"walk"|"walk2",
+  //      armF/armB: [forward, down] hand offset from the shoulder, blush, behind(px, hand) }
+  function person(px, o) {
+    const dir = o.dir || 1, cx = o.x, girl = !!o.girl, y0 = o.y ?? GROUND;
+    const hy = o.sit ?? y0 - 8; // hip row
+    const X = (dx) => cx + dir * dx;
+    const sF = [X(1), hy - 8], sB = [X(-1), hy - 8];
+    const aF = o.armF || [1, 7], aB = o.armB || [-1, 7];
+    const hF = [sF[0] + dir * aF[0], sF[1] + aF[1]], hB = [sB[0] + dir * aB[0], sB[1] + aB[1]];
+    if (!o.sit && !o.noShadow) px.rect(cx - 5, y0 + 1, 11, 1, "s");
+    // back arm (and anything held behind)
+    px.line(sB[0], sB[1], hB[0], hB[1], "W");
+    if (o.behind) o.behind(hB);
+    // legs
+    const legC = girl ? "W" : "h", shoe = girl ? "m" : "k";
+    if (o.sit != null) {
+      px.rect(Math.min(X(-2), X(6)), hy + 1, 9, 2, girl ? "p" : "h");
+      px.rect(Math.min(X(5), X(6)), hy + 3, 2, y0 - hy - 3, girl ? "W" : "h");
+      px.rect(Math.min(X(5), X(7)), y0, 3, 1, shoe);
+    } else if (o.legs === "walk" || o.legs === "walk2") {
+      const s = o.legs === "walk" ? 3 : -3;
+      px.line(X(-1), hy + 1, X(-s), y0 - 1, legC, girl ? 1 : 2);
+      px.line(X(1), hy + 1, X(s), y0 - 1, legC, girl ? 1 : 2);
+      px.rect(Math.min(X(-s), X(-s + 1)), y0, 2, 1, shoe);
+      px.rect(Math.min(X(s), X(s + 1)), y0, 2, 1, shoe);
+    } else if (girl) {
+      px.rect(X(-1), hy + 2, 1, y0 - hy - 2, "W"); px.rect(X(1), hy + 2, 1, y0 - hy - 2, "W");
+      px.rect(Math.min(X(-2), X(-1)), y0, 2, 1, shoe); px.rect(Math.min(X(1), X(2)), y0, 2, 1, shoe);
+    } else {
+      px.rect(Math.min(X(-2), X(-1)), hy + 1, 2, y0 - hy - 1, "h"); px.rect(Math.min(X(1), X(2)), hy + 1, 2, y0 - hy - 1, "h");
+      px.rect(Math.min(X(-2), X(-1)), y0, 2, 1, shoe); px.rect(Math.min(X(1), X(3)), y0, 3, 1, shoe);
+    }
+    // torso
+    if (girl) {
+      const rows = o.sit != null ? 10 : 11;
+      for (let r = 0; r < rows; r++) {
+        const half = r < 4 ? 2 : r < 7 ? 3 : 4;
+        for (let i = -half; i <= half; i++) px.dot(X(i), hy - 9 + r, i === -half || r === rows - 1 ? "P" : "p");
+      }
+      for (let i = -3; i <= 3; i++) px.dot(X(i), hy - 4, "m"); // ribbon belt
+    } else {
+      for (let r = 0; r < 9; r++) for (let i = -2; i <= 2; i++) px.dot(X(i), hy - 9 + r, i === -2 ? "L" : "l");
+      px.dot(X(1), hy - 9, "W"); px.dot(X(2), hy - 9, "W"); // collar
+      for (let i = -2; i <= 2; i++) px.dot(X(i), hy, "k"); // belt
+    }
+    // head
+    const top = hy - 17;
+    if (girl) px.spr(GIRL_HEAD, dir === 1 ? cx - 5 : cx - 2, top, dir === -1);
+    else px.spr(GUY_HEAD, cx - 3, top, dir === -1);
+    if (o.blush) { px.dot(X(1), hy - 12, "m"); px.dot(X(2), hy - 12, "m"); }
+    // front arm
+    px.line(sF[0], sF[1], hF[0], hF[1], "W");
+    return { hF, hB, mouth: [X(3), hy - 12], top: [cx, top] };
+  }
+
+  const ground = (px, x0 = 0, x1 = W) => {
+    px.rect(x0, GROUND + 2, x1 - x0, 3, "w");
+    for (let x = x0 + 2; x < x1; x += 7) px.dot(x, GROUND + 3, "s");
+  };
+  const floatHeart = (px, x, y, t, a, b, small) => {
+    if (t < a || t > b) return;
+    const k = prog(t, a, b);
+    if (k > 0.85 && blink(t, 0.1)) return;
+    px.spr(small ? HEART_S : HEART, x, Math.round(y - k * 6));
+  };
+
+  // ── the scenes ─────────────────────────────────────────────────────────────────
+  // Card 1 — texting: she's in bed, he's at his desk; the line between their phones draws a heart
+  const LINK = (() => {
+    const segs = [
+      [[23, 34], [26, 48], [38, 56], [47, 55]], [[47, 55], [52, 52], [57, 47], [56, 43]],
+      [[56, 43], [55, 39], [49, 38], [47, 43]], [[47, 43], [45, 38], [39, 39], [38, 43]],
+      [[38, 43], [37, 47], [42, 52], [47, 55]], [[47, 55], [56, 56], [69, 48], [73, 34]],
+    ];
+    const pts = [];
+    for (const [a, b, c, d] of segs) for (let i = 0; i <= 40; i++) {
+      const u = i / 40, v = 1 - u;
+      const p = [0, 1].map((k) => Math.round(v * v * v * a[k] + 3 * v * v * u * b[k] + 3 * v * u * u * c[k] + u * u * u * d[k]));
+      const q = pts[pts.length - 1];
+      if (!q || q[0] !== p[0] || q[1] !== p[1]) pts.push(p);
+    }
+    return pts;
+  })();
+  const texting = {
+    dur: 6,
+    draw(px, t) {
+      ground(px);
+      // bed
+      px.rect(2, 32, 3, 26, "W"); px.rect(2, 32, 3, 1, "w"); px.rect(3, 34, 1, 22, "w");
+      px.rect(5, 44, 37, 5, "W"); px.rect(5, 48, 37, 1, "w"); px.rect(39, 49, 2, 9, "w");
+      px.rect(5, 38, 8, 6, "w"); px.rect(6, 39, 6, 4, "W");
+      // her, sitting up against the pillow
+      const phoneUp = [5, -3];
+      const g = person(px, { x: 13, dir: 1, girl: true, sit: 44, armF: phoneUp, armB: [2, 6] });
+      // blanket over her legs (with little hearts)
+      px.rect(16, 41, 24, 4, "p"); px.rect(16, 44, 24, 1, "P");
+      for (let x = 19; x < 39; x += 6) px.spr(HEART_S, x, 41, false, { r: "m" });
+      const glow = blink(t, 0.4);
+      px.spr(glow ? PHONE_ON : PHONE, g.hF[0], g.hF[1] - 4);
+      // desk, laptop, mug, lamp
+      px.rect(90, 38, 19, 2, "W"); px.rect(91, 40, 1, 18, "w"); px.rect(106, 40, 1, 18, "w");
+      px.rect(95, 31, 8, 7, "L"); px.rect(96, 32, 6, 5, "l"); px.rect(94, 37, 10, 1, "W");
+      px.rect(104, 34, 3, 4, "W"); px.dot(107, 35, "W");
+      px.line(100, 30, 97, 20, "k"); px.rect(95, 18, 5, 2, "y"); px.dot(97, 17, "Y");
+      // desk chair
+      px.rect(77, 46, 11, 2, "B"); px.rect(86, 34, 3, 12, "B"); px.rect(87, 35, 1, 10, "b"); px.rect(82, 48, 1, 6, "k");
+      px.line(77, 55, 87, 55, "k"); px.dot(77, 57, "k"); px.dot(87, 57, "k"); px.dot(82, 57, "k");
+      // him, sitting facing left
+      const b = person(px, { x: 83, dir: -1, sit: 45, armF: [5, -3], armB: [3, 5] });
+      px.spr(!glow ? PHONE_ON : PHONE, b.hF[0] - 2, b.hF[1] - 4);
+      // typing bubbles
+      const bub = (x, y) => { px.rect(x, y, 9, 5, "W"); px.dot(x + 1, y + 5, "W"); for (let i = 0; i < 3; i++) if (Math.floor(t * 3) % 3 >= i) px.dot(x + 2 + i * 2, y + 2, "k"); };
+      if (t < 2.2) (Math.floor(t / 1.1) % 2 ? bub(64, 14) : bub(19, 14));
+      // the line between the phones that turns into a heart
+      const n = Math.floor(prog(t, 0.3, 2.8) * LINK.length);
+      if (t < 5.4) for (let i = 0; i < n; i++) px.dot(LINK[i][0], LINK[i][1], "W");
+      if (t > 2.9 && t < 5.4) {
+        px.spr(["rr.rr", "rWrrr", "rrrrr", ".rrr.", "..r.."], 45, 45);
+        if (blink(t, 0.3)) { px.dot(43, 41, "y"); px.dot(51, 41, "y"); px.dot(47, 39, "y"); }
+      }
+    },
+  };
+
+  // Card 2 — gym: he walks up to her outside Fit Factory and takes her water bottle
+  const gym = {
+    dur: 8,
+    draw(px, t) {
+      ground(px);
+      // Fit Factory building
+      px.rect(64, 14, 45, 44, "W"); px.rect(62, 12, 48, 3, "w");
+      for (let y = 37; y < 57; y += 3) for (let x = 66 + ((y / 3) % 2) * 3; x < 107; x += 6) px.rect(x, y, 3, 1, "w");
+      px.rect(66, 17, 41, 16, "h"); px.rect(67, 18, 39, 14, "H");
+      px.text("FIT", 81, 19, "W"); px.text("FACTORY", 73, 26, "W");
+      px.rect(67, 36, 11, 9, "w"); px.rect(68, 37, 9, 7, "l"); px.rect(70, 40, 5, 1, "k"); px.rect(69, 39, 1, 3, "k"); px.rect(75, 39, 1, 3, "k");
+      px.rect(97, 36, 10, 9, "w"); px.rect(98, 37, 8, 7, "l"); px.line(99, 43, 104, 38, "W");
+      px.rect(83, 38, 11, 20, "w"); px.rect(84, 39, 9, 8, "l"); px.rect(84, 48, 9, 9, "W"); px.dot(91, 51, "k"); px.dot(91, 52, "k");
+      px.rect(81, 57, 15, 1, "s");
+      // timeline
+      const walkEnd = 3.0, reach = [3.3, 3.8], swap = 4.4, back = [4.6, 5.0], drink = [5.4, 6.7];
+      const gx = Math.round(lerp(4, 33, prog(t, 0.2, walkEnd)));
+      const walking = t > 0.2 && t < walkEnd;
+      const legs = walking ? (Math.floor(t / 0.2) % 2 ? "walk" : "walk2") : "stand";
+      // her (facing left, gym bag on her shoulder, bottle in hand)
+      const herArm = t < reach[0] ? [1, 7] : t < back[0] ? mix([1, 7], [6, 0], prog(t, reach[0] + 0.1, reach[1] + 0.1)) : mix([6, 0], [1, 7], prog(t, back[0], back[1]));
+      const g = person(px, { x: 48, dir: -1, girl: true, armF: herArm, armB: [1, 6],
+        behind: () => { px.line(49, 41, 53, 46, "k"); px.spr(GYMBAG, 50, 44); } });
+      if (t < swap) px.spr(BOTTLE, g.hF[0] - 2, g.hF[1] - 6);
+      // him
+      let arm = [1, 7];
+      if (t > reach[0] && t < back[0]) arm = mix([1, 7], [6, 0], prog(t, reach[0], reach[1]));
+      else if (t >= back[0] && t < drink[0]) arm = mix([6, 0], [2, 4], prog(t, back[0], back[1]));
+      else if (t >= drink[0] && t < drink[1]) arm = mix([2, 4], [2, -4], prog(t, drink[0], drink[0] + 0.4));
+      else if (t >= drink[1]) arm = mix([2, -4], [1, 7], prog(t, drink[1], drink[1] + 0.4));
+      const b = person(px, { x: gx, dir: 1, legs, armF: arm, armB: walking ? [Math.floor(t / 0.2) % 2 ? 2 : -2, 7] : [-1, 7] });
+      if (t >= swap) {
+        if (t > drink[0] + 0.3 && t < drink[1]) px.spr(BOTTLE_TIP, b.hF[0] - 3, b.hF[1] - 2);
+        else px.spr(BOTTLE, b.hF[0] - 1, b.hF[1] - 6);
+      }
+      floatHeart(px, 39, 22, t, 6.0, 7.6);
+    },
+  };
+
+  // Card 3 — date at ZIKIRI beach bar: sushi and a coconut
+  const date = {
+    dur: 6,
+    draw(px, t) {
+      ground(px);
+      px.line(0, 60, 110, 60, "l"); // the sea's edge
+      // sign + palm
+      const sway = blink(t, 0.6) ? 0 : 1;
+      px.rect(18, 6, 2, 52, "c"); px.rect(18, 6, 1, 52, "C");
+      for (let y = 9; y < 56; y += 4) px.dot(19, y, "C");
+      [[-13, 5], [13, 5], [-9, 9], [9, 9], [-4, 10], [4, 10]].forEach(([dx, dy]) => {
+        const s = dx < 0 ? -1 : 1, ex = 19 + dx + (sway ? s : 0), ey = 5 + dy;
+        px.line(19, 5, ex, ey, "G", 2); px.line(19, 4, ex, ey - 1, "g");
+      });
+      px.rect(17, 5, 4, 3, "c"); px.dot(16, 7, "C"); px.dot(21, 7, "C");
+      px.rect(1, 16, 37, 13, "W"); px.rect(1, 16, 37, 1, "s"); px.rect(1, 28, 37, 1, "s");
+      px.text("ZIKIRI", 8, 18, "k"); px.text("BEACH BAR", 3, 23, "R");
+      // her chair + her
+      px.rect(40, 33, 2, 25, "c"); px.rect(40, 46, 9, 2, "c"); px.rect(47, 48, 1, 10, "C");
+      const lift = prog(t, 1.0, 1.6) - prog(t, 2.6, 3.2);
+      const handArm = mix([7, 2], [4, -4], lift);
+      const g = person(px, { x: 45, dir: 1, girl: true, sit: 45, armF: handArm, armB: [2, 6], blush: t > 3.2 });
+      // table with sushi and a coconut
+      px.rect(56, 42, 22, 2, "W"); px.rect(56, 44, 22, 3, "s"); for (let x = 57; x < 78; x += 3) px.dot(x, 47, "s");
+      px.rect(66, 47, 2, 10, "w"); px.rect(62, 57, 10, 1, "w");
+      px.rect(57, 40, 11, 2, "w");
+      if (lift < 0.5) px.spr(["nWWn", "nffn", "nnnn"], 58, 37);
+      px.spr(["nWWn", "nffn", "nnnn"], 63, 37);
+      px.spr(["..oo..", ".cccc.", "cCcccc", "ccccCc", "cccccc", ".cccc."], 70, 36); px.rect(71, 36, 4, 1, "W");
+      px.line(73, 36, 76, 29, "m"); px.spr(["..r..", ".rrr.", "rrrrr"], 74, 27);
+      // chopsticks (with a piece of sushi while lifting)
+      const [hx, hy] = g.hF;
+      px.line(hx, hy, hx + 5, hy - 2, "C"); px.line(hx, hy + 1, hx + 5, hy, "C");
+      if (lift > 0.5) { px.dot(hx + 5, hy - 1, "f"); px.dot(hx + 6, hy - 1, "W"); }
+      // his chair + him
+      px.rect(93, 33, 2, 25, "c"); px.rect(85, 46, 9, 2, "c"); px.rect(86, 48, 1, 10, "C");
+      person(px, { x: 89, dir: -1, sit: 45, armF: [7, 1], armB: [2, 6] });
+      floatHeart(px, 64, 20, t, 3.2, 5.2);
+      floatHeart(px, 58, 26, t, 3.5, 5.2, true);
+    },
+  };
+
+  // Card 4 — road trip, seen from above: she's lying in the reclined seat under a blanket,
+  // head on a neck pillow, legs stretched over onto his lap under the steering wheel
+  const roadtrip = {
+    dur: 3,
+    draw(px, t) {
+      // road
+      const off = Math.floor(t * 40) % 16;
+      for (let x = -16; x < W + 16; x += 16) { px.rect(x - off, 3, 9, 1, "w"); px.rect(x - off, 58, 9, 1, "w"); }
+      for (let i = 0; i < 3; i++) { const x = 8 - ((Math.floor(t * 30) + i * 7) % 20); px.rect(x, 20 + i * 10, 6, 1, "w"); }
+      const bob = blink(t, 0.3) ? 0 : 1;
+      const Y = (v) => v + bob;
+      // car body (front is on the right)
+      px.rect(8, Y(9), 92, 44, "W"); px.rect(6, Y(12), 2, 38, "W"); px.rect(100, Y(11), 3, 40, "W"); px.rect(103, Y(14), 2, 34, "W");
+      px.rect(14, Y(7), 11, 2, "k"); px.rect(78, Y(7), 11, 2, "k"); px.rect(14, Y(53), 11, 2, "k"); px.rect(78, Y(53), 11, 2, "k");
+      px.rect(103, Y(15), 2, 5, "y"); px.rect(103, Y(42), 2, 5, "y"); px.rect(6, Y(13), 2, 4, "r"); px.rect(6, Y(45), 2, 4, "r");
+      px.rect(80, Y(6), 3, 3, "W"); px.rect(80, Y(53), 3, 3, "W");
+      // windscreen, open cabin, dashboard, back seat
+      px.rect(84, Y(12), 6, 38, "l"); px.line(85, Y(13), 89, Y(18), "W"); px.line(85, Y(40), 88, Y(44), "W");
+      px.rect(11, Y(12), 73, 38, "s");
+      px.rect(76, Y(12), 8, 38, "h"); px.rect(78, Y(28), 4, 6, "b");
+      px.rect(12, Y(13), 8, 36, "w"); px.line(13, Y(31), 19, Y(31), "s");
+      // driver seat (top) and the passenger seat reclined flat (bottom)
+      px.rect(50, Y(13), 15, 16, "w");
+      px.rect(21, Y(32), 46, 17, "w"); px.rect(21, Y(34), 4, 13, "W");
+      // him, seen from above: shoulders, head, arms on the wheel, legs under it
+      px.rect(61, Y(18), 16, 2, "h"); px.rect(61, Y(22), 16, 2, "h");
+      px.rect(54, Y(14), 4, 14, "l"); px.rect(54, Y(14), 1, 14, "L");
+      px.spr([".hhhh.", "hhhhhh", "hHhhhh", "hhhhhh", "hhhhhh", ".hhhh."], 55, Y(17));
+      px.line(57, Y(15), 72, Y(16), "W"); px.line(57, Y(26), 72, Y(25), "W");
+      px.rect(73, Y(13), 2, 15, "k"); px.dot(72, Y(13), "k"); px.dot(72, Y(27), "k");
+      // her, lying on her back: hair spread on the headrest, neck pillow, blanket, eyes closed
+      px.spr(["..hhhhhh..", ".hhhhhhhh.", "hhhWWWWhhh", "hhWWWWWWhh", "hhWkkWWWhh", "hhWWWWWWhh", "hhWkkWWWhh", "hhWWWmWWhh", "hhhWWWWhhh", ".hhhhhhhh.", "..hhhhhh.."], 22, Y(35), false);
+      px.spr(["mmmm", "m...", "m...", "m...", "m...", "m...", "m...", "mmmm"], 31, Y(36)); // neck pillow
+      px.rect(34, Y(33), 29, 15, "p"); px.rect(34, Y(33), 29, 2, "P");
+      for (let x = 37; x < 62; x += 6) for (let y = 37; y < 47; y += 4) px.spr(HEART_S, x + ((y / 4) % 2) * 3, Y(y), false, { r: "P" });
+      // her legs over the console onto his lap, pink socks on his knees
+      px.line(62, Y(36), 64, Y(23), "W", 2); px.line(62, Y(42), 68, Y(25), "W", 2);
+      px.rect(63, Y(19), 3, 3, "m"); px.rect(67, Y(21), 3, 3, "m");
+      // z z z
+      for (let i = 0; i < 3; i++) {
+        const k = ((t / 3) + i / 3) % 1, x = 30 + Math.round(k * 6), y = Y(33) - Math.round(k * 26);
+        px.spr(["kkk", "..k", ".k.", "k..", "kkk"], x, y, false, { k: "W" });
+      }
+    },
+  };
+
+  // Card 5 — bouquet: he brings it out from behind his back, she melts and takes it
+  const bouquet = {
+    dur: 7,
+    draw(px, t) {
+      ground(px);
+      // little park: lamp post, flowers, a bench
+      px.rect(100, 16, 2, 42, "h"); px.rect(97, 13, 8, 4, "h"); px.rect(98, 17, 6, 2, "y"); if (blink(t, 0.5)) px.dot(101, 20, "y");
+      for (let x = 4; x < 100; x += 9) { px.dot(x, 56, "G"); px.dot(x, 55, (x / 9) % 2 ? "m" : "y"); }
+      px.rect(3, 47, 14, 2, "c"); px.rect(3, 43, 14, 2, "c"); px.rect(4, 49, 1, 8, "C"); px.rect(15, 49, 1, 8, "C");
+      const show = [1.2, 1.8], cheek = [2.0, 3.4], reach = [3.5, 3.9], swap = 4.1;
+      // him
+      let arm = [-3, 4];
+      if (t >= show[0] && t < swap + 0.2) arm = mix([-3, 4], [7, 0], prog(t, show[0], show[1]));
+      if (t >= swap + 0.2) arm = mix([7, 0], [1, 7], prog(t, swap + 0.2, swap + 0.7));
+      const hidden = t < show[0];
+      const b = person(px, { x: 38, dir: 1, armF: hidden ? [1, 7] : arm, armB: hidden ? [-3, 4] : [-1, 7],
+        behind: (h) => hidden && px.spr(BOUQUET, h[0] - 3, h[1] - 7) });
+      if (!hidden && t < swap) px.spr(BOUQUET, b.hF[0] - 3, b.hF[1] - 7);
+      // her
+      let hArm = [1, 7], bArm = [1, 6];
+      if (t >= cheek[0] && t < reach[0]) { hArm = mix([1, 7], [2, -4], prog(t, cheek[0], cheek[0] + 0.4)); bArm = mix([1, 6], [-1, -4], prog(t, cheek[0], cheek[0] + 0.4)); }
+      if (t >= reach[0] && t < swap + 0.2) hArm = mix([2, -4], [7, 0], prog(t, reach[0], reach[1]));
+      if (t >= swap + 0.2) hArm = mix([7, 0], [3, -3], prog(t, swap + 0.2, swap + 0.7));
+      const g = person(px, { x: 58, dir: -1, girl: true, armF: hArm, armB: bArm, blush: t > cheek[0] });
+      if (t >= swap) px.spr(BOUQUET, g.hF[0] - 3, g.hF[1] - 7, true);
+      floatHeart(px, 48, 20, t, 4.4, 6.4);
+      floatHeart(px, 56, 14, t, 4.8, 6.6, true);
+      floatHeart(px, 42, 16, t, 5.1, 6.7, true);
+    },
+  };
+
+  // Card 6 — cake (no candle): side by side, his arm around her, both hands on the knife;
+  // then she turns and feeds him a bite, and he feeds her from the same slice
+  const cake = {
+    dur: 10,
+    draw(px, t) {
+      ground(px);
+      // bunting
+      px.line(0, 3, W, 3, "w");
+      for (let x = 2; x < W; x += 8) { const c = ["m", "p", "y", "W"][(x / 8) % 4 | 0]; px.spr(["ccccc", ".ccc.", "..c.."], x, 4, false, { c }); }
+      // table
+      px.rect(48, 47, 27, 2, "W"); px.rect(48, 49, 27, 3, "s"); for (let x = 49; x < 75; x += 3) px.dot(x, 52, "s");
+      px.rect(51, 52, 2, 6, "w"); px.rect(70, 52, 2, 6, "w");
+      // the cake: two tiers, pink drips, strawberries on top — no candle
+      px.rect(50, 46, 21, 1, "w");
+      px.rect(51, 38, 19, 8, "W"); px.rect(51, 38, 19, 1, "m"); [52, 55, 58, 61, 64, 67].forEach((x, i) => px.rect(x, 39, 1, 1 + (i % 2), "m"));
+      for (let x = 53; x < 69; x += 4) px.dot(x, 43, "s");
+      px.rect(55, 31, 11, 7, "W"); px.rect(55, 31, 11, 1, "m"); [56, 59, 62, 65].forEach((x, i) => px.rect(x, 32, 1, 1 + (i % 2), "m"));
+      [[57, 29], [60, 28], [63, 29]].forEach(([x, y]) => { px.rect(x, y, 2, 2, "r"); px.dot(x, y - 1, "G"); });
+      const cutDone = t > 2.6;
+      if (cutDone) { px.line(56, 39, 58, 45, "s"); }
+      // timeline
+      const hold = [0.6, 3.2], press = prog(t, 1.4, 2.2) - prog(t, 2.6, 3.0);
+      const turn = 3.8, feedHim = [4.2, 5.0], bite1 = 5.2, swap = 5.9, feedHer = [6.0, 6.8], bite2 = 7.0;
+      const p = Math.round(press * 2);
+      // him (behind her): during the cut his arm goes around her to the knife
+      let bA = [1, 7];
+      if (t > hold[0] && t < hold[1] + 0.4) bA = mix([1, 7], [16, -3 + p], prog(t, hold[0], hold[0] + 0.5) - prog(t, hold[1], hold[1] + 0.4));
+      if (t >= swap && t < 8) bA = t < feedHer[0] ? [3, 3] : t < bite2 + 0.3 ? mix([3, 3], [6, -4], prog(t, feedHer[0], feedHer[1])) : mix([6, -4], [1, 7], prog(t, bite2 + 0.3, bite2 + 0.7));
+      const b = person(px, { x: 31, dir: 1, armF: bA, blush: t > bite1 });
+      // her: cuts, then turns around to face him
+      const faceHim = t >= turn;
+      let gA = [1, 7];
+      if (t > hold[0] && t < hold[1] + 0.4) gA = mix([1, 7], [8, -3 + p], prog(t, hold[0], hold[0] + 0.5) - prog(t, hold[1], hold[1] + 0.4));
+      if (t >= 3.4 && t < swap) gA = t < feedHim[0] ? [3, 3] : t < bite1 + 0.3 ? mix([3, 3], [6, -4], prog(t, feedHim[0], feedHim[1])) : mix([6, -4], [3, 3], prog(t, bite1 + 0.3, bite1 + 0.6));
+      const g = person(px, { x: 41, dir: faceHim ? -1 : 1, girl: true, armF: gA, blush: t > bite2 });
+      // the knife: dark handle in both hands, long silver blade angled into the cake
+      if (t > hold[0] + 0.4 && t < hold[1]) {
+        px.rect(46, 36 + p, 4, 2, "h"); px.rect(50, 36 + p, 1, 2, "k");
+        px.line(51, 36 + p, 58, 39 + p, "d"); px.line(51, 37 + p, 58, 40 + p, "L"); px.dot(59, 40 + p, "d");
+      }
+      // fork with the slice: first in her hand (feeding him), then in his (feeding her)
+      const slice = (h, dir, size) => {
+        px.line(h[0], h[1], h[0] + 3 * dir, h[1] - 1, "d");
+        const x = dir > 0 ? h[0] + 3 : h[0] - 5;
+        if (size === 2) px.spr(["mmm", "WWW", "WsW"], x, h[1] - 3, dir < 0);
+        if (size === 1) px.spr(["mm", "Ws"], x + (dir < 0 ? 1 : 0), h[1] - 2, dir < 0);
+      };
+      if (t >= 3.4 && t < swap) slice(g.hF, faceHim ? -1 : 1, t < bite1 ? 2 : 1);
+      if (t >= swap && t < bite2 + 0.6) slice(b.hF, 1, t < bite2 ? 1 : 0);
+      floatHeart(px, 34, 12, t, 7.6, 9.4);
+      floatHeart(px, 28, 18, t, 7.9, 9.5, true);
+      floatHeart(px, 42, 16, t, 8.1, 9.6, true);
+    },
+  };
+
+  // Card 7 — close-up in the car: he opens a ring box (gold ring, sparkling diamond), she's speechless
+  const GUY_BIG = [
+    "....hhhhhhhh....",
+    "..hhhhhhhhhhhh..",
+    ".hhhhhhhhhhhhhh.",
+    ".hhhhhHHhhhhhhh.",
+    ".hhWWhhhhhWWhhh.",
+    ".hWWWWWWWWWWWWh.",
+    "WWWWWWWWWWWWWWWW",
+    "WWWWkkWWWWWWkkWW",
+    "WWWWkkWWWWWWkkWW",
+    ".WWWWWWWWWWWWWW.",
+    ".WWqqWWWWWWWqqW.",
+    ".WWWWWWWWWWWWWW.",
+    "..WWWWkkkkWWWW..",
+    "...WWWWWWWWWW...",
+    ".....WWWWWW.....",
+    "......WWWW......",
+    "......WWWW......",
+  ];
+  const GIRL_BIG = [
+    ".....hhhhhhhh.....",
+    "...hhhhhhhhhhhh...",
+    "..hhhhhhhhhhhhhh..",
+    ".hhhhhhhhhhhhhhhh.",
+    ".hhhhHHhhhhhhhhhh.",
+    "hhhhWWWhhhhWWWhhhh",
+    "hhhWWWWWWWWWWWWhhh",
+    "hhWWWWWWWWWWWWWWhh",
+    "hhWkkkWWWWWWkkkWhh",
+    "hhWWkkWWWWWWkkWWhh",
+    "hhWWWWWWWWWWWWWWhh",
+    "hhWqqWWWWWWWWqqWhh",
+    "hhWWWWWWWWWWWWWWhh",
+    "hhhWWWWWkkWWWWWhhh",
+    "hhhWWWWWkkWWWWWhhh",
+    "hhhhWWWWWWWWWWhhhh",
+    "hhhh.WWWWWWWW.hhhh",
+    "hhhh...WWWW...hhhh",
+    "hhhh...WWWW...hhhh",
+    "hhh............hhh",
+    "hhh............hhh",
+    ".hh............hh.",
+  ];
+  const RING = [
+    "..W..",
+    ".ddd.",
+    "dWdLd",
+    ".dLd.",
+    "..d..",
+    ".yYy.",
+    "y...Y",
+    "y...Y",
+    ".yYy.",
+  ];
+  const ring = {
+    dur: 7,
+    draw(px, t) {
+      const opened = t > 1.6, react = t > 2.1;
+      // headrests + seats
+      px.rect(18, 16, 24, 30, "w"); px.rect(68, 14, 26, 32, "w"); px.rect(19, 17, 22, 1, "s"); px.rect(69, 15, 24, 1, "s");
+      // him (left): shirt, seatbelt, big head
+      px.rect(14, 42, 33, 20, "l"); px.rect(14, 42, 4, 20, "L"); px.rect(27, 41, 7, 3, "W"); px.line(16, 43, 40, 61, "k", 2);
+      px.spr(GUY_BIG, 22, 25, false, { q: react ? "m" : "W" });
+      // her (right): top, seatbelt, big head with long hair
+      px.rect(63, 43, 35, 19, "p"); px.rect(94, 43, 4, 19, "P"); px.rect(76, 42, 8, 3, "W"); px.line(95, 44, 70, 61, "k", 2);
+      px.spr(GIRL_BIG, 71, 22, false, { q: react ? "m" : "W" });
+      // she covers her mouth with both hands
+      if (react && t < 6.5) {
+        px.line(66, 50, 75, 39, "W", 2); px.line(95, 50, 86, 39, "W", 2);
+        px.rect(74, 35, 4, 4, "W"); px.rect(84, 35, 4, 4, "W");
+      }
+      // his hand bringing the box up between them
+      const up = prog(t, 0.2, 0.9);
+      const by = Math.round(lerp(60, 50, up)), bx = 49;
+      px.line(42, 55, bx + 2, by + 3, "W", 2);
+      // ring box: lid flips open, gold ring with a diamond on a dark cushion
+      if (opened) {
+        px.rect(bx, by - 9, 13, 9, "R"); px.rect(bx + 1, by - 8, 11, 7, "h");
+        px.spr(RING, bx + 4, by - 10);
+      }
+      px.rect(bx, by, 13, 6, "R"); px.rect(bx, by, 13, 1, "h"); px.rect(bx + 1, by + 1, 11, 1, "k"); px.rect(bx, by + 5, 13, 1, "R");
+      px.dot(bx + 6, by + 3, "y");
+      if (!opened) px.rect(bx, by - 3, 13, 3, "R");
+      // sparkles around the diamond
+      if (opened) {
+        const f = Math.floor(t * 5) % 3;
+        const star = (x, y) => { px.dot(x, y, "W"); px.dot(x - 1, y, "d"); px.dot(x + 1, y, "d"); px.dot(x, y - 1, "d"); px.dot(x, y + 1, "d"); };
+        if (f === 0) star(bx + 3, by - 12);
+        if (f === 1) star(bx + 10, by - 11);
+        if (f === 2) star(bx + 6, by - 14);
+      }
+      // windscreen frame, rear-view mirror with a swinging heart, dashboard
+      px.rect(0, 0, W, 2, "W"); px.line(0, 2, 7, 61, "W", 2); px.line(108, 2, 101, 61, "W", 2);
+      px.rect(48, 2, 15, 5, "w"); px.rect(49, 3, 13, 3, "l"); px.rect(54, 0, 3, 2, "k");
+      const sw = Math.round(Math.sin(t * 3) * 2);
+      px.line(55, 7, 55 + sw, 11, "k"); px.spr(HEART_S, 54 + sw, 11);
+      floatHeart(px, 98, 26, t, 2.6, 4.6, true);
+      floatHeart(px, 66, 16, t, 3.0, 5.2);
+      floatHeart(px, 100, 12, t, 3.8, 5.8);
+    },
+  };
+
+  // Card 8 — airport: a long hug, he walks up the stairs into a big plane, it takes off
+  const drawPlane = (px, dx, dy, tilt) => {
+    // everything goes through P() so the whole plane can move and tilt nose-up
+    const P = (x, y, c) => px.dot(x + dx, y + dy - Math.round((x - 60) * tilt), c);
+    const R = (x, y, w, h, c) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) P(x + i, y + j, c); };
+    // tail fin with a heart logo, stabiliser
+    for (let y = 4; y <= 22; y++) { const x1 = 58 + Math.round((y - 4) * 0.55); R(52 + Math.round((y - 4) * 0.2), y, x1 - 52 - Math.round((y - 4) * 0.2), 1, y < 6 ? "w" : "W"); }
+    [[55, 11], [57, 11], [54, 12], [55, 12], [56, 12], [57, 12], [58, 12], [55, 13], [56, 13], [57, 13], [56, 14]].forEach(([x, y]) => P(x, y, "r"));
+    R(45, 27, 16, 2, "w");
+    // fuselage (runs off the right edge), tail cone, belly stripe, windows, door
+    R(52, 29, 8, 15, "W"); R(56, 25, 4, 4, "W");
+    R(60, 22, 60, 25, "W"); R(60, 22, 60, 1, "w");
+    R(52, 40, 68, 2, "m"); R(52, 42, 68, 5, "w"); R(52, 46, 68, 1, "s");
+    for (let x = 78; x < 120; x += 5) { R(x, 28, 2, 3, "L"); P(x, 28, "l"); }
+    R(64, 25, 8, 16, "k"); R(65, 26, 6, 14, "w"); R(66, 27, 4, 5, "l"); P(70, 33, "k");
+    // wing towards us, with an engine
+    for (let y = 40; y <= 51; y++) R(84 - (y - 40), y, 16 - Math.round((y - 40) * 0.6), 1, y === 40 ? "W" : "w");
+    R(76, 47, 11, 5, "s"); R(76, 47, 2, 5, "k"); R(86, 48, 1, 3, "w");
+    return P;
+  };
+  const airport = {
+    dur: 10,
+    draw(px, t) {
+      // sky + tarmac
+      const cl = (t * 3) % 150;
+      px.spr(["..WWW...", ".WWWWWW.", "WWWWWWWW"], Math.round(40 - cl + (cl > 60 ? 150 : 0)), 5);
+      px.spr(["..WW..", "WWWWWW"], Math.round(20 - cl * 0.6 + (cl > 40 ? 150 : 0)), 13);
+      px.rect(0, GROUND + 2, W, 3, "w"); for (let x = 0; x < W; x += 8) px.rect(x, GROUND + 3, 4, 1, "y");
+      // plane: waits, taxis a little, then climbs away
+      const taxi = prog(t, 5.8, 6.6), climb = prog(t, 6.6, 9.0);
+      const dx = Math.round(taxi * 6 + climb * climb * 90), dy = -Math.round(climb * climb * 60);
+      const tilt = Math.min(0.22, climb * 0.5);
+      const P = drawPlane(px, dx, dy, tilt);
+      if (climb < 0.15) { // landing gear
+        [[62, "k"], [104, "k"]].forEach(([x]) => { for (let y = 47; y < GROUND; y++) P(x, y, "k"); P(x - 1, GROUND, "k"); P(x, GROUND, "k"); P(x + 1, GROUND, "k"); });
+      }
+      // stair truck to the door
+      if (t < 5.6) {
+        for (let i = 0; i < 8; i++) px.rect(48 + i * 2, 56 - i * 2, 3, 1, "w");
+        px.line(47, 52, 63, 37, "k"); px.line(47, 52, 47, 57, "k"); px.rect(45, 57, 22, 1, "h");
+      }
+      // her: hugging, then waving him goodbye
+      const hug = t < 2.2;
+      let wave = [1, 7];
+      if (hug) wave = [6, -1];
+      else if (t > 3.0 && t < 9.4) wave = Math.floor(t / 0.25) % 2 ? [3, -8] : [5, -7];
+      person(px, { x: 18, dir: 1, girl: true, armF: wave, armB: hug ? [5, 0] : [1, 7], blush: hug });
+      // him: hug (facing her), then turns, walks over and climbs the stairs into the plane
+      if (hug) {
+        person(px, { x: 25, dir: -1, armF: [6, -1], armB: [5, 0] });
+      } else if (t < 5.4) {
+        const walk = prog(t, 2.4, 4.0), up = prog(t, 4.0, 5.2);
+        const x = Math.round(lerp(25, 46, walk) + up * 20), y = GROUND - Math.round(up * 16);
+        const moving = t > 2.4 && t < 5.2;
+        person(px, { x, y, dir: 1, legs: moving ? (Math.floor(t / 0.2) % 2 ? "walk" : "walk2") : "stand",
+          armF: t < 2.9 ? [3, -8] : [1, 7], noShadow: up > 0 });
+      }
+      floatHeart(px, 19, 18, t, 0.4, 2.2);
+    },
+  };
+
+  const SCENES = { texting, gym, date, roadtrip, bouquet, cake, ring, airport };
+
+  // ── mounting + one shared animation loop ───────────────────────────────────────
+  const mounted = [];
+  const px = new Px();
+  const small = document.createElement("canvas");
+  small.width = W; small.height = H;
+  const sctx = small.getContext("2d");
+  const render = (m) => {
+    const c = m.canvas, dpr = Math.min(3, window.devicePixelRatio || 1);
+    const cw = Math.round(c.clientWidth * dpr), ch = Math.round(c.clientHeight * dpr);
+    if (!cw || !ch) return;
+    if (c.width !== cw || c.height !== ch) { c.width = cw; c.height = ch; }
+    px.clear();
+    m.def.draw(px, m.frame / FPS);
+    px.outline();
+    sctx.putImageData(new ImageData(px.a, W, H), 0, 0);
+    const ctx = m.ctx, s = Math.max(1, Math.floor(Math.min(cw / W, ch / H)));
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(small, Math.round((cw - W * s) / 2), ch - H * s, W * s, H * s);
+  };
+  let last = performance.now();
+  const tick = (now) => {
+    const dt = Math.min(0.1, (now - last) / 1000);
+    last = now;
+    for (const m of mounted) {
+      if (m.fixed != null) { const f = Math.floor(m.fixed * FPS); if (f !== m.frame || m.dirty) { m.frame = f; m.dirty = false; render(m); } continue; }
+      if (!m.active()) continue;
+      m.t = (m.t + dt) % m.def.dur;
+      const f = Math.floor(m.t * FPS);
+      if (f !== m.frame || m.dirty) { m.frame = f; m.dirty = false; render(m); }
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+  addEventListener("resize", () => mounted.forEach((m) => (m.dirty = true)));
+
+  window.CARD_SCENES = SCENES;
+  // el: container; active(): whether it should animate right now (on screen, card not flipped)
+  window.mountCardScene = (el, name, active = () => true) => {
+    const def = SCENES[name];
+    if (!def) return null;
+    const canvas = document.createElement("canvas");
+    canvas.className = "pxscene";
+    el.append(canvas);
+    const m = { el, def, canvas, ctx: canvas.getContext("2d"), t: 0, frame: -1, dirty: true, active, fixed: null };
+    mounted.push(m);
+    return m;
+  };
+  // for checking a scene at a given moment:  __pixelShow(0, 2.5)  (card index, seconds)
+  window.__pixelScenes = mounted;
+  window.__pixelShow = (i, t) => { const m = mounted[i]; m.fixed = t; m.frame = Math.floor(t * FPS); render(m); };
 })();

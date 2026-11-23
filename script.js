@@ -134,7 +134,7 @@
       card.tabIndex = 0;
       card.setAttribute("role", "button");
       card.innerHTML = `<div class="flip__inner">
-        <div class="flip__face${scene ? " has-scene" : ""}">${s.date ? `<span class="date">${esc(s.date)}</span>` : ""}<h2>${esc(s.title)}</h2><span class="hint">Tap to open</span>${scene ? `<div class="cscene">${scene}</div>` : ""}</div>
+        <div class="flip__face${scene ? " has-scene" : ""}">${s.date ? `<span class="date">${esc(s.date)}</span>` : ""}<h2>${esc(s.title)}</h2><span class="hint">Tap to open</span>${scene ? `<div class="cscene"></div>` : ""}</div>
         <div class="flip__face flip__face--back"><p>${esc(s.text)}</p></div></div>`;
 
       // full-screen overlay. Layout depends on how many media files the card has:
@@ -256,6 +256,9 @@
       closeBtn.addEventListener("click", () => api.close());
       addEventListener("keydown", (e) => e.key === "Escape" && active === api && api.close());
       addEventListener("resize", () => active === api && layout());
+
+      // pixel-art scene on the card front: only animates while the card is on screen and not flipped
+      if (scene) window.mountCardScene(card.querySelector(".cscene"), s.scene, () => sec.classList.contains("vis") && !card.classList.contains("open"));
 
       sec.append(card);
     },
