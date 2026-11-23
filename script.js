@@ -211,6 +211,7 @@
       tick();
       setInterval(tick, 1000);
       sec.append(el("span", "kicker", esc(s.title)), big, small);
+      if (s.subtitle) sec.append(el("span", "kicker", esc(s.subtitle))); // same style as the title line
     },
 
     letter(s, sec) {

@@ -151,7 +151,8 @@ window.STORY = {
 
     {
       type: "counter",
-      title: "We zijn",
+      title: "We zijn",       // above the big day count
+      subtitle: "samen",      // below the small counter, same style as the title
     },
 
     {
