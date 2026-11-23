@@ -31,6 +31,7 @@ window.STORY = {
     // ── Card 1 ── 2 media file(s)
     {
       title: "Toen we spraken",                // ✏️ front of the card
+      scene: "texting",   // ✏️ white animation at the bottom of the card front (see scenes.js)
       text: "Toen we spraken",   // ✏️ back of the card (shown while it flips)
       audio: "voiceovers/Card 1.mp4",
       media: [
@@ -42,6 +43,7 @@ window.STORY = {
     // ── Card 2 ── 1 media file(s)
     {
       title: "Eerste ontmoeting",                // ✏️ front of the card
+      scene: "gym",   // ✏️ white animation at the bottom of the card front (see scenes.js)
       text: "Eerste ontmoeting",   // ✏️ back of the card (shown while it flips)
       audio: "voiceovers/Card 2.m4a.mp4",
       media: [
@@ -52,6 +54,7 @@ window.STORY = {
     // ── Card 3 ── 4 media file(s)
     {
       title: "Onze eerste date",                // ✏️ front of the card
+      scene: "date",   // ✏️ white animation at the bottom of the card front (see scenes.js)
       text: "Onze eerste date",   // ✏️ back of the card (shown while it flips)
       audio: "voiceovers/Card 3.m4a.mp4",
       media: [
@@ -65,6 +68,7 @@ window.STORY = {
     // ── Card 4 ── 3 media file(s)
     {
       title: "Jouw man",                // ✏️ front of the card
+      scene: "roadtrip",   // ✏️ white animation at the bottom of the card front (see scenes.js)
       text: "Jouw man",   // ✏️ back of the card (shown while it flips)
       audio: "voiceovers/Card 4.m4a.mp4",
       media: [
@@ -77,6 +81,7 @@ window.STORY = {
     // ── Card 5 ── 14 media file(s)
     {
       title: "Dates",                // ✏️ front of the card
+      scene: "bouquet",   // ✏️ white animation at the bottom of the card front (see scenes.js)
       text: "Dates.",   // ✏️ back of the card (shown while it flips)
       audio: "voiceovers/Card 5.m4a.mp4",
       media: [
@@ -100,6 +105,7 @@ window.STORY = {
     // ── Card 6 ── 3 media file(s)
     {
       title: "Onze eerste maand samen",                // ✏️ front of the card
+      scene: "cake",   // ✏️ white animation at the bottom of the card front (see scenes.js)
       text: "Onze eerste maand samen",   // ✏️ back of the card (shown while it flips)
       audio: "voiceovers/Card 6.m4a.mp4",
       media: [
@@ -112,6 +118,7 @@ window.STORY = {
     // ── Card 7 ── 3 media file(s)
     {
       title: "Momenten",                // ✏️ front of the card
+      scene: "ring",   // ✏️ white animation at the bottom of the card front (see scenes.js)
       text: "Momenten",   // ✏️ back of the card (shown while it flips)
       audio: "voiceovers/Card 7.m4a.mp4",
       media: [
@@ -124,6 +131,7 @@ window.STORY = {
     // ── Card 8 ── 7 media file(s)
     {
       title: "7448 Km",                // ✏️ front of the card
+      scene: "airport",   // ✏️ white animation at the bottom of the card front (see scenes.js)
       text: "7448 Km",   // ✏️ back of the card (shown while it flips)
       audio: "voiceovers/Card 8.m4a.mp4",
       media: [

@@ -43,9 +43,62 @@ p { margin: 0; font-size: 18px; line-height: 1.55; color: var(--ink-dim); white-
 .kicker, .date { text-transform: uppercase; letter-spacing: .18em; font-size: 12px; color: var(--accent); }
 
 /* hero */
-.hero { text-align: center; align-items: center; }
-.hero::after { content: "↓"; margin-top: 32px; font-size: 28px; color: var(--accent); animation: bob 1.8s ease-in-out infinite; }
+/* Her name uses "Sverige Script" if you add the font file as fonts/SverigeScript.woff2 / .ttf / .otf,
+   otherwise it falls back to Great Vibes (loaded from Google Fonts in index.html). */
+@font-face {
+  font-family: "Sverige Script";
+  src: local("Sverige Script"), local("SverigeScript"), url("fonts/SverigeScript.woff2") format("woff2"),
+       url("fonts/SverigeScript.ttf") format("truetype"), url("fonts/SverigeScript.otf") format("opentype");
+  font-display: swap;
+}
+.hero { text-align: center; align-items: center; padding-left: 16px; padding-right: 16px; }
 @keyframes bob { 50% { transform: translateY(10px); } }
+.intro { width: 100%; display: flex; flex-direction: column; align-items: center; }
+.write { display: block; height: auto; overflow: visible; }
+.write text {
+  font-size: 100px; fill: currentColor; fill-opacity: 0; stroke: currentColor;
+  stroke-dasharray: var(--len, 2000); stroke-dashoffset: var(--len, 2000);
+}
+.intro__happy { width: 94%; color: var(--accent); font-family: "Dancing Script", cursive; font-weight: 700; }
+.intro__happy text { stroke-width: 3; }
+.intro__name { width: 104%; margin: 8px -2% 0; color: var(--ink); font-family: "Sverige Script", "Great Vibes", cursive; }
+.intro__name text { stroke-width: 1.2; }
+/* the "pen" reveal: each line is uncovered left → right while its outline draws in */
+.write { -webkit-clip-path: inset(-40% 100% -40% -10%); clip-path: inset(-40% 100% -40% -10%); }
+@keyframes reveal { to { -webkit-clip-path: inset(-40% -10% -40% -10%); clip-path: inset(-40% -10% -40% -10%); } }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@keyframes fillin { to { fill-opacity: 1; } }
+.intro__stage { position: relative; width: 100%; height: 200px; margin-top: 6px; }
+.intro__bouquet { position: absolute; left: 50%; top: 0; width: 150px; height: 180px; margin-left: -75px; opacity: 0; transform: translateY(30px) scale(.3); }
+.bq-base { position: absolute; inset: 0; width: 100%; height: 100%; }
+.intro__rose { position: absolute; width: 40px; height: 40px; margin: -20px 0 0 -20px; }
+.intro__rose svg { width: 100%; height: 100%; display: block; }
+.intro__sub { position: absolute; left: 0; right: 0; top: 56px; opacity: 0; }
+.intro__arrow { position: absolute; left: 50%; top: 118px; width: 30px; margin-left: -15px; font-size: 28px; color: var(--accent); opacity: 0; }
+/* ── intro timeline (seconds after the page is ready) ──
+   0.0–2.2  "Happy six months" written     2.4–5.2  name written      5.4  bouquet appears
+   6.7–8.3  roses scatter                   8.2      subtitle fades in  8.8  arrow appears */
+.go .intro__happy { animation: reveal 2s ease-in-out forwards; }
+.go .intro__happy text { animation: draw 2.2s ease-in-out forwards, fillin .8s 1.5s ease forwards; }
+.go .intro__name { animation: reveal 2.6s 2.4s ease-in-out forwards; }
+.go .intro__name text { animation: draw 2.8s 2.4s ease-in-out forwards, fillin 1s 4.4s ease forwards; }
+.go .intro__bouquet { animation: bq-in .8s 5.4s cubic-bezier(.2, .9, .3, 1.3) forwards; }
+@keyframes bq-in { to { opacity: 1; transform: none; } }
+.go .bq-base { animation: fadeout .7s 6.9s ease forwards; }
+@keyframes fadeout { to { opacity: 0; } }
+.go .intro__rose { animation: scatter 1.5s calc(6.7s + var(--d, 0s)) cubic-bezier(.3, .7, .2, 1) forwards; }
+@keyframes scatter { to { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(var(--s)); } }
+.go .intro__rose svg { animation: rsway 3s 8.3s ease-in-out infinite alternate; }
+@keyframes rsway { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
+.go .intro__sub { animation: fadein 1s 8.2s ease forwards; }
+.go .intro__arrow { animation: fadein .6s 8.8s ease forwards, bob 1.8s 9.4s ease-in-out infinite; }
+@keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+/* reduced motion: show the finished opening straight away */
+.reduce .go .intro *, .reduce .go .intro { animation-duration: .01s !important; animation-delay: 0s !important; }
+.reduce .go .intro__rose svg, .reduce .go .intro__arrow { animation: none !important; opacity: 1; }
+
+/* card fronts with a scene: title moves up to make room for the animation at the bottom */
+.flip__face.has-scene { justify-content: flex-start; padding-top: 16%; }
 
 /* flip card */
 .flip { perspective: 1000px; width: 100%; aspect-ratio: 4 / 5; cursor: pointer; outline: none; }

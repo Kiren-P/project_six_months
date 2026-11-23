@@ -3,6 +3,8 @@
   const { herName, startDate } = S;
   const root = document.getElementById("story");
   const fill = (s) => (s || "").replaceAll("{name}", herName);
+  // phones with "Reduce Motion" on get the opening without animation (add ?motion to the URL to force it on)
+  document.documentElement.classList.toggle("reduce", matchMedia("(prefers-reduced-motion: reduce)").matches && !/motion/.test(location.search));
 
   const el = (tag, cls, html) => {
     const n = document.createElement(tag);
@@ -26,6 +28,7 @@
         type: "storycard",
         date: c.date ?? "", // optional small label above the title
         title: c.title ?? `Story ${i + 1}`,
+        scene: c.scene ?? null, // looping white animation at the bottom of the card (see scenes.js)
         text: c.text ?? "Placeholder text.",
         audio: c.audio ?? null,
         media: c.media ?? Array.from({ length: S.mediaPerCard ?? 3 }, (_, k) => ({ src: null, caption: `Placeholder ${k + 1}` })),
@@ -58,12 +61,71 @@
   };
 
   const builders = {
+    // Opening: "Happy six months" is written out, then her name, then a bouquet of six roses
+    // appears and its roses scatter across the screen, then the subtitle fades in.
+    // The timing of each step lives in styles.css (search for "intro timeline").
     hero(s, sec) {
       sec.classList.add("hero");
-      sec.append(el("span", "kicker", esc(s.kicker)), el("h1", "", esc(s.title)), el("p", "", esc(s.subtitle)));
+      const ROSE = `<svg viewBox="-24 -24 48 48">
+        <path d="M-5 12C-15 13-20 20-22 24C-12 24-6 19-4 12Z" fill="#3f7a3a"/><path d="M5 12C15 13 20 20 22 24C12 24 6 19 4 12Z" fill="#4e8c43"/>
+        ${[0, 72, 144, 216, 288].map((a) => `<circle r="9" cx="${(8 * Math.cos((a * Math.PI) / 180)).toFixed(1)}" cy="${(8 * Math.sin((a * Math.PI) / 180)).toFixed(1)}" fill="#ad1457"/>`).join("")}
+        <circle r="11" cx="0.5" cy="-0.5" fill="#d81b60"/>
+        <path d="M0 -9.5A9.5 9.5 0 1 1 -9 3" fill="none" stroke="#ff8fb1" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M1 -5.5A5.5 5.5 0 1 1 -4.8 2.4" fill="none" stroke="#ff8fb1" stroke-width="2" stroke-linecap="round"/>
+        <circle r="2" cx="0.5" cy="-0.5" fill="#ffb3c8"/></svg>`;
+      // six rose heads in the bouquet (x, y inside a 150 × 180 box), back to front
+      const heads = [[75, 34], [46, 48], [104, 48], [75, 58], [56, 74], [94, 74]];
+      const stems = heads.map(([x, y]) => `M${x} ${y}L75 124`).join("") + "M75 124L68 172M75 124L75 174M75 124L82 172";
+      sec.innerHTML = `<div class="intro">
+        <svg class="write intro__happy" aria-label="${esc(s.kicker)}"><text>${esc(s.kicker)}</text></svg>
+        <svg class="write intro__name" aria-label="${esc(s.title)}"><text>${esc(s.title)}</text></svg>
+        <div class="intro__stage">
+          <div class="intro__bouquet">
+            <svg class="bq-base" viewBox="0 0 150 180">
+              <path d="${stems}" stroke="#3f7a3a" stroke-width="3" fill="none" stroke-linecap="round"/>
+              <path d="M30 62C22 52 24 44 34 46M120 62C128 52 126 44 116 46" stroke="#4e8c43" stroke-width="6" fill="none" stroke-linecap="round"/>
+              <path d="M26 66L38 58L50 66L62 58L75 66L88 58L100 66L112 58L124 66L86 156H64Z" fill="#ffd1df" stroke="#f06a9b" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M75 126C60 112 50 130 75 128C100 130 90 112 75 126ZM73 128L62 146M77 128L88 146" fill="rgba(142,63,214,.35)" stroke="#8e3fd6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="75" cy="127" r="3.5" fill="#8e3fd6"/>
+            </svg>
+            ${heads.map(([x, y]) => `<div class="intro__rose" style="left:${x}px;top:${y}px">${ROSE}</div>`).join("")}
+          </div>
+          <p class="intro__sub">${esc(s.subtitle)}</p>
+          <div class="intro__arrow">↓</div>
+        </div></div>`;
+
+      const start = () => {
+        // size each handwritten line to its text, so it fills the width
+        sec.querySelectorAll("svg.write").forEach((svg) => {
+          const t = svg.querySelector("text");
+          const b = t.getBBox();
+          const pad = b.height * (svg.classList.contains("intro__name") ? 0.02 : 0.08);
+          svg.setAttribute("viewBox", `${b.x - pad} ${b.y - pad} ${b.width + pad * 2} ${b.height + pad * 2}`);
+          svg.style.setProperty("--len", Math.ceil(b.width * 4));
+        });
+        // where each rose flies to: around the edges of the opening screen, away from the text
+        const spots = [[0.14, 0.12], [0.5, 0.07], [0.86, 0.15], [0.16, 0.83], [0.5, 0.92], [0.84, 0.8]];
+        const W = sec.clientWidth, H = sec.clientHeight;
+        const off = (n) => { let x = 0, y = 0; for (; n && n !== sec; n = n.offsetParent) { x += n.offsetLeft; y += n.offsetTop; } return [x, y]; };
+        [...sec.querySelectorAll(".intro__rose")].forEach((r, i) => {
+          const [x, y] = off(r);
+          const [sx, sy] = spots[i % spots.length];
+          const tx = sx * W + (Math.random() - 0.5) * W * 0.08 - x, ty = sy * H + (Math.random() - 0.5) * H * 0.04 - y;
+          r.style.setProperty("--tx", tx.toFixed(0) + "px");
+          r.style.setProperty("--ty", ty.toFixed(0) + "px");
+          r.style.setProperty("--rot", ((Math.random() - 0.5) * 120).toFixed(0) + "deg");
+          r.style.setProperty("--s", (1.25 + Math.random() * 0.5).toFixed(2));
+          r.style.setProperty("--d", (i * 0.08).toFixed(2) + "s");
+        });
+        requestAnimationFrame(() => sec.classList.add("go"));
+      };
+      // wait (briefly) for the handwriting fonts so the text is measured in the right font
+      const fonts = ['700 100px "Dancing Script"', '100px "Sverige Script"', '100px "Great Vibes"'].map((f) => document.fonts?.load(f).catch(() => {}));
+      Promise.race([Promise.all(fonts), new Promise((r) => setTimeout(r, 2500))]).then(() => requestAnimationFrame(start));
     },
 
     storycard(s, sec, idx) {
+      const scene = s.scene && window.CARD_SCENES?.[s.scene];
       const audio = s.audio ? new Audio() : null;
       if (audio) { audio.preload = "none"; audio.src = s.audio; }
 
@@ -72,7 +134,7 @@
       card.tabIndex = 0;
       card.setAttribute("role", "button");
       card.innerHTML = `<div class="flip__inner">
-        <div class="flip__face">${s.date ? `<span class="date">${esc(s.date)}</span>` : ""}<h2>${esc(s.title)}</h2><span class="hint">Tap to open</span></div>
+        <div class="flip__face${scene ? " has-scene" : ""}">${s.date ? `<span class="date">${esc(s.date)}</span>` : ""}<h2>${esc(s.title)}</h2><span class="hint">Tap to open</span>${scene ? `<div class="cscene">${scene}</div>` : ""}</div>
         <div class="flip__face flip__face--back"><p>${esc(s.text)}</p></div></div>`;
 
       // full-screen overlay. Layout depends on how many media files the card has:
@@ -344,6 +406,10 @@
     { threshold: 0.25 }
   );
   document.querySelectorAll(".scene").forEach((n) => io.observe(n));
+
+  // card scenes only animate while their card is on screen
+  const visIO = new IntersectionObserver((entries) => entries.forEach((e) => e.target.classList.toggle("vis", e.isIntersecting)));
+  document.querySelectorAll(".scene").forEach((n) => visIO.observe(n));
 
   // start loading a card's voice-over and videos when it's about one screen away
   const warmIO = new IntersectionObserver(
