@@ -155,12 +155,16 @@ window.STORY = {
     },
 
     {
+      // The final card: flips open into the full letter, plays your voice-over and highlights each word.
+      // The letter TEXT and per-word TIMINGS come from letter.js, which is generated from Letter.txt and
+      // voiceovers/Letter.mp4. After editing Letter.txt or re-recording, run:  python tools/align_letter.py
       type: "letter",
       prompt: "Tap to open",
-      title: "One last thing…",
-      text:
-        "Placeholder letter.\n\nWrite what you really want to say to her here. Line breaks are kept.\n\nI love you, {name}.",
-      signoff: "— Yours",
+      title: "One last thing…",      // front of the letter card
+      signoff: "— Yours",            // shown under the letter; set to "" to hide
+      // If the blue highlight runs consistently ahead of your voice, make this negative (e.g. -0.2);
+      // if it lags behind, make it positive (e.g. 0.2). In seconds.
+      syncOffset: 0,
     },
   ],
 };

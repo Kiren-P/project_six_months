@@ -214,12 +214,118 @@
     },
 
     letter(s, sec) {
-      const wrap = el("div", "letter-wrap");
-      const env = el("button", "envelope", `💌<span class="hint">${esc(s.prompt)}</span>`);
-      const letter = el("div", "letter", `<h2>${esc(s.title)}</h2><p>${esc(s.text)}</p><p class="sign">${esc(s.signoff)}</p>`);
-      env.addEventListener("click", () => wrap.classList.add("open"));
-      wrap.append(env, letter);
-      sec.append(wrap);
+      const L = window.LETTER || { paragraphs: [] };
+      const audio = new Audio();
+      audio.preload = "none";
+      audio.src = s.audio || L.audio;
+      const offset = s.syncOffset || 0;
+
+      // the card she taps (same look as the story cards)
+      const card = el("div", "flip flip--letter");
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.innerHTML = `<div class="flip__inner">
+        <div class="flip__face"><span class="envelope-emoji">💌</span><h2>${esc(s.title)}</h2><span class="hint">${esc(s.prompt)}</span></div>
+        <div class="flip__face flip__face--back"><span class="envelope-emoji">💗</span></div></div>`;
+
+      // full-screen letter: every word is its own <span> so it can be highlighted
+      const ov = el("div", "loverlay");
+      const paper = el("div", "lpaper");
+      paper.append(el("h2", "", esc(s.title)));
+      const words = []; // { el, t }
+      L.paragraphs.forEach((para) => {
+        const p = el("p");
+        para.forEach(([w, t], i) => {
+          const span = el("span", "w", esc(w));
+          span.dataset.i = words.length;
+          words.push({ el: span, t });
+          p.append(span, i < para.length - 1 ? " " : "");
+        });
+        paper.append(p);
+      });
+      if (s.signoff) paper.append(el("p", "sign", esc(s.signoff)));
+      const play = el("button", "lplay");
+      play.setAttribute("aria-label", "Play or pause");
+      const closeBtn = el("button", "overlay__close", "✕");
+      closeBtn.setAttribute("aria-label", "Close");
+      ov.append(paper, play, closeBtn);
+      document.body.append(ov);
+
+      // which word is being spoken at time t (binary search on start times)
+      const wordAt = (t) => {
+        let lo = 0, hi = words.length - 1, ans = -1;
+        while (lo <= hi) { const m = (lo + hi) >> 1; if (words[m].t <= t) { ans = m; lo = m + 1; } else hi = m - 1; }
+        return ans;
+      };
+
+      // auto-scroll: when the highlighted word gets near the bottom, bring it back up.
+      // Paused for a few seconds whenever she scrolls the letter herself.
+      let userUntil = 0;
+      ["touchstart", "wheel", "pointerdown"].forEach((ev) => paper.addEventListener(ev, () => (userUntil = Date.now() + 3500), { passive: true }));
+      const follow = (span) => {
+        if (Date.now() < userUntil) return;
+        const pr = paper.getBoundingClientRect(), r = span.getBoundingClientRect();
+        const y = r.top - pr.top;
+        if (y > pr.height * 0.62 || y < 0) paper.scrollTo({ top: paper.scrollTop + y - pr.height * 0.3, behavior: "smooth" });
+      };
+
+      let cur = -1, raf = 0;
+      const highlight = () => {
+        const i = audio.ended ? -1 : wordAt(audio.currentTime + offset);
+        if (i !== cur) {
+          if (cur >= 0) words[cur].el.classList.remove("now");
+          cur = i;
+          if (cur >= 0) { words[cur].el.classList.add("now"); follow(words[cur].el); }
+        }
+        play.style.setProperty("--p", audio.duration ? audio.currentTime / audio.duration : 0);
+      };
+      const loop = () => { highlight(); raf = requestAnimationFrame(loop); };
+      const setIcon = () => (play.textContent = audio.paused ? "▶" : "❚❚");
+      audio.addEventListener("play", () => { setIcon(); cancelAnimationFrame(raf); loop(); });
+      audio.addEventListener("pause", () => { setIcon(); cancelAnimationFrame(raf); highlight(); });
+      audio.addEventListener("ended", () => { setIcon(); highlight(); });
+      setIcon();
+
+      let showTimer;
+      const api = {
+        open() {
+          if (active && active !== api) active.close();
+          active = api;
+          card.classList.add("open"); // 1) card flips
+          if (audio.ended) audio.currentTime = 0; // reopening continues where she left off, unless it finished
+          audio.play().catch(() => {});
+          showTimer = setTimeout(() => { // 2) then the letter opens full-screen
+            ov.classList.add("show");
+            document.body.classList.add("locked");
+            if (cur >= 0) follow(words[cur].el);
+          }, 650);
+        },
+        close() {
+          clearTimeout(showTimer);
+          ov.classList.remove("show");
+          document.body.classList.remove("locked");
+          card.classList.remove("open");
+          audio.pause();
+          if (active === api) active = null;
+        },
+      };
+
+      // tap a word to jump the voice-over to it
+      paper.addEventListener("click", (e) => {
+        const w = e.target.closest(".w");
+        if (!w) return;
+        audio.currentTime = Math.max(0, words[+w.dataset.i].t - offset);
+        audio.play().catch(() => {});
+        highlight();
+      });
+      card.addEventListener("click", () => api.open());
+      card.addEventListener("keydown", (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), api.open()));
+      play.addEventListener("click", () => (audio.paused ? audio.play().catch(() => {}) : audio.pause()));
+      closeBtn.addEventListener("click", () => api.close());
+      addEventListener("keydown", (e) => e.key === "Escape" && active === api && api.close());
+      sec._warm = () => (audio.preload = "auto");
+
+      sec.append(card);
     },
   };
 
@@ -269,7 +375,7 @@
   const buildVine = () => {
     vine?.svg.remove();
     vine = null;
-    const cards = [...root.querySelectorAll(".flip")];
+    const cards = [...root.querySelectorAll(".flip:not(.flip--letter)")];
     if (cards.length < 2) return;
     const W = root.clientWidth, cx = W / 2, A = Math.min(W * 0.38, 170);
     const boxes = cards.map((c) => { const t = offsetIn(c, root); return { t, b: t + c.offsetHeight }; });
