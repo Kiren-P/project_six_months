@@ -76,22 +76,22 @@ p { margin: 0; font-size: 18px; line-height: 1.55; color: var(--ink-dim); white-
 .intro__sub { position: absolute; left: 0; right: 0; top: 56px; opacity: 0; }
 .intro__arrow { position: absolute; left: 50%; top: 118px; width: 30px; margin-left: -15px; font-size: 28px; color: var(--accent); opacity: 0; }
 /* ── intro timeline (seconds after the page is ready) ──
-   0.0–2.2  "Happy six months" written     2.4–5.2  name written      5.4  bouquet appears
-   6.7–8.3  roses scatter                   8.2      subtitle fades in  8.8  arrow appears */
-.go .intro__happy { animation: reveal 2s ease-in-out forwards; }
-.go .intro__happy text { animation: draw 2.2s ease-in-out forwards, fillin .8s 1.5s ease forwards; }
-.go .intro__name { animation: reveal 2.6s 2.4s ease-in-out forwards; }
-.go .intro__name text { animation: draw 2.8s 2.4s ease-in-out forwards, fillin 1s 4.4s ease forwards; }
-.go .intro__bouquet { animation: bq-in .8s 5.4s cubic-bezier(.2, .9, .3, 1.3) forwards; }
+   0.0–1.4  "Happy six months" written     1.4–3.2  name written      3.3  bouquet appears
+   4.6–6.2  roses scatter                   6.1      subtitle fades in  6.7  arrow appears */
+.go .intro__happy { animation: reveal 1.2s ease-in-out forwards; }
+.go .intro__happy text { animation: draw 1.3s ease-in-out forwards, fillin .5s .9s ease forwards; }
+.go .intro__name { animation: reveal 1.6s 1.4s ease-in-out forwards; }
+.go .intro__name text { animation: draw 1.7s 1.4s ease-in-out forwards, fillin .6s 2.6s ease forwards; }
+.go .intro__bouquet { animation: bq-in .8s 3.3s cubic-bezier(.2, .9, .3, 1.3) forwards; }
 @keyframes bq-in { to { opacity: 1; transform: none; } }
-.go .bq-base { animation: fadeout .7s 6.9s ease forwards; }
+.go .bq-base { animation: fadeout .7s 4.8s ease forwards; }
 @keyframes fadeout { to { opacity: 0; } }
-.go .intro__rose { animation: scatter 1.5s calc(6.7s + var(--d, 0s)) cubic-bezier(.3, .7, .2, 1) forwards; }
+.go .intro__rose { animation: scatter 1.5s calc(4.6s + var(--d, 0s)) cubic-bezier(.3, .7, .2, 1) forwards; }
 @keyframes scatter { to { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(var(--s)); } }
-.go .intro__rose svg { animation: rsway 3s 8.3s ease-in-out infinite alternate; }
+.go .intro__rose svg { animation: rsway 3s 6.2s ease-in-out infinite alternate; }
 @keyframes rsway { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
-.go .intro__sub { animation: fadein 1s 8.2s ease forwards; }
-.go .intro__arrow { animation: fadein .6s 8.8s ease forwards, bob 1.8s 9.4s ease-in-out infinite; }
+.go .intro__sub { animation: fadein 1s 6.1s ease forwards; }
+.go .intro__arrow { animation: fadein .6s 6.7s ease forwards, bob 1.8s 7.3s ease-in-out infinite; }
 @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 /* reduced motion: show the finished opening straight away */
 .reduce .go .intro *, .reduce .go .intro { animation-duration: .01s !important; animation-delay: 0s !important; }
